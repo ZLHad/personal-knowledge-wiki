@@ -215,6 +215,7 @@ Read CLAUDE.md first for format conventions.
 3. Weave wikilinks within your group's pages
 4. ❌ Do NOT modify index.md
 5. ❌ Do NOT modify log.md
+6. ❌ Do NOT create cross-group wikilinks (Main Agent handles this)
 
 ## Output Manifest
 When done, output:
