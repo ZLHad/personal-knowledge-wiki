@@ -147,10 +147,89 @@ Output file verification info to confirm complete copy:
 - Cross-reference related pages found during migration
 - Build `## Related` sections
 
-#### 3.5 Checkpoint (every 3-5 files)
-- Git commit current progress
+#### 3.5 Checkpoint / Parallel Processing
+
+Choose processing mode based on total file count:
+
+**≤ 5 files: Sequential + Checkpoint**
+- Git commit every 3 files
 - Output brief progress summary: `Processed X/N files, created Y wiki pages`
-- Reduces context pressure during long batch sessions, prevents quality degradation near context limits
+
+**> 5 files: Parallel Processing**
+
+Use sub-Agents for parallel processing to avoid context compaction and repeated file reads.
+
+```
+Main Agent (Coordinator)
+├── 1. Read index.md / CLAUDE.md, pre-analyze all source files
+├── 2. Group by wiki page dependencies (prevent multiple Agents writing same page)
+├── 3. Launch sub-Agents in parallel (2-4 files per group)
+├── 4. Collect sub-Agent manifests
+└── 5. Merge: index.md / log.md / cross-group wikilinks / git commit
+
+Sub-Agent-A          Sub-Agent-B          Sub-Agent-C
+├── files 1, 3, 7    ├── files 2, 5, 8    ├── files 4, 6, 9
+├── raw records      ├── raw records      ├── raw records
+├── wiki pages       ├── wiki pages       ├── wiki pages
+└── return manifest  └── return manifest  └── return manifest
+```
+
+**Grouping Strategy**:
+- Pre-read each file's first 20 lines, identify target wiki pages
+- Files updating the **same wiki page** go in the **same group**
+- Non-overlapping files can be freely assigned, balancing workload
+- 2-4 files per group, max 5
+
+**Sub-Agent Responsibilities**:
+- ✅ Create raw records
+- ✅ Create/update wiki pages within its group only
+- ✅ Weave wikilinks within group
+- ❌ Do NOT modify index.md
+- ❌ Do NOT modify log.md
+- ❌ Do NOT create cross-group wikilinks
+- 📤 Return manifest (raw_records + new_pages + updated_pages + key_knowledge)
+
+**Sub-Agent Prompt Template**:
+```
+You are a wiki migrate sub-Agent. Process the following files and migrate them into the wiki.
+
+## Wiki Path
+{{WIKI_PATH}}
+
+## Required Reading
+Read CLAUDE.md first for format conventions.
+
+## Existing Wiki Pages (avoid duplicates)
+<page list from Main Agent's index.md>
+
+## Files to Process
+1. <file_path_1>
+2. <file_path_2>
+
+## Depth Mode
+<catalog / standard / deep>
+
+## Your Tasks
+1. Create raw record for each file (copy to raw/<domain>/<sub-category>/)
+2. Extract entities/concepts per depth mode, create or update wiki pages
+3. Weave wikilinks within your group's pages
+4. ❌ Do NOT modify index.md
+5. ❌ Do NOT modify log.md
+
+## Output Manifest
+When done, output:
+- raw_records: [filename + size list]
+- new_pages: [new wiki page paths]
+- updated_pages: [updated wiki page paths]
+- key_knowledge: [core takeaways]
+```
+
+**Main Agent Wrap-up**:
+1. Merge index.md (add all new/updated pages)
+2. Append log.md (summarize all sub-Agent results)
+3. Cross-group wikilinks (link related pages across groups)
+4. File verification (aggregate all raw record checks)
+5. Git commit (single commit for all changes)
 
 ### Step 4: Update Index & Timeline
 

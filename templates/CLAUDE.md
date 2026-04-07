@@ -242,8 +242,10 @@ Apply the corresponding checklist based on the source file's domain to avoid mis
 
 **Batch Ingest (3+ files):**
 - After processing files 1-2, **pause** — show wiki page samples, let user confirm depth is satisfactory
-- After confirmation, continue batch processing remaining files
-- Checkpoint every 3-5 files (git commit + brief summary) to reduce context pressure
+- After confirmation, choose processing mode:
+  - **≤ 5 files**: Sequential processing, checkpoint every 3 files
+  - **> 5 files**: Parallel processing via sub-Agents (see wiki-ingest/wiki-migrate skill files for details)
+- Parallel mode: group files by wiki page dependencies, launch sub-Agents per group, merge results at the end
 - After completion, output raw file verification summary
 
 **Rules:**

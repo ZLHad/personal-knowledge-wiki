@@ -198,15 +198,102 @@ If user provides multiple external files:
 2. **Confirm depth level** (shallow/deep/exhaustive), default deep
 3. **Process file #1**: Execute full ingest workflow, show results
 4. **Sample Approval**: Show file #1's raw record + wiki page sample, ask user to confirm depth is satisfactory
-5. After user confirms, continue batch processing remaining files
-6. **Checkpoint every 3-5 files**: git commit + brief progress summary to manage context pressure
-7. After completion, output **file verification summary** and overall report
+5. After user confirms, choose processing mode based on file count:
+   - **≤ 5 files**: Sequential processing, checkpoint every 3 files
+   - **> 5 files**: Enable **parallel processing** (see Parallel Processing section below)
+6. After completion, output **file verification summary** and overall report
 
 **File verification summary format** (per raw record):
 ```
 ✓ YYYY-MM-DD-slug.md (XXkB → raw/domain/category/, complete)
 ✗ bad-file.md (0kB, skipped: empty file)
 ```
+
+### Parallel Processing
+
+When batch file count > 5, use sub-Agents for parallel processing to avoid context compaction:
+
+#### Architecture
+
+```
+Main Agent (Coordinator)
+├── 1. Read index.md / CLAUDE.md, analyze all source files
+├── 2. Group by wiki page dependencies (prevent multiple Agents writing same page)
+├── 3. Launch sub-Agents in parallel (2-3 files per group)
+├── 4. Collect sub-Agent manifests
+└── 5. Merge: update index.md / log.md / cross-group wikilinks / git commit
+
+Sub-Agent-A          Sub-Agent-B          Sub-Agent-C
+├── files 1, 3, 7    ├── files 2, 5, 8    ├── files 4, 6, 9
+├── raw records      ├── raw records      ├── raw records
+├── wiki pages       ├── wiki pages       ├── wiki pages
+└── return manifest  └── return manifest  └── return manifest
+```
+
+#### Grouping Strategy
+
+Main Agent pre-analyzes each file's wiki page targets before dispatching:
+- Files that update the **same wiki page** go in the **same group** (e.g. papers both touching [[MEC]])
+- Non-overlapping files can be freely assigned, balancing workload
+- 2-4 files per group, max 5
+
+#### Sub-Agent Responsibilities
+
+Each sub-Agent:
+- ✅ Create raw records
+- ✅ Create/update wiki pages **within its group only**
+- ✅ Weave wikilinks within group
+- ❌ Do NOT modify `index.md`
+- ❌ Do NOT modify `log.md`
+- ❌ Do NOT create cross-group wikilinks
+- 📤 Return manifest (raw_records + new_pages + updated_pages + key_knowledge)
+
+#### Sub-Agent Prompt Template
+
+```
+You are a wiki ingest sub-Agent. Process the following files and ingest knowledge into the wiki.
+
+## Wiki Path
+{{WIKI_PATH}}
+
+## Required Reading
+Read CLAUDE.md first for format conventions.
+
+## Existing Wiki Pages (avoid duplicates)
+<page list from Main Agent's index.md>
+
+## Files to Process
+1. <file_path_1>
+2. <file_path_2>
+3. <file_path_3>
+
+## Depth Level
+<shallow / deep / exhaustive>
+
+## Your Tasks
+1. Create raw record for each file (copy to raw/<domain>/<sub-category>/)
+2. Extract entities/concepts, create or update wiki pages (only pages in your group)
+3. Weave wikilinks within your group's pages
+4. ❌ Do NOT modify index.md
+5. ❌ Do NOT modify log.md
+6. ❌ Do NOT create cross-group wikilinks (Main Agent handles this)
+
+## Output Manifest
+When done, output:
+- raw_records: [filename + size list]
+- new_pages: [new wiki page paths]
+- updated_pages: [updated wiki page paths]
+- key_knowledge: [1-2 sentence core takeaways]
+```
+
+#### Main Agent Wrap-up
+
+After collecting all sub-Agent manifests:
+1. **Merge index.md**: Add all new/updated pages to the catalog
+2. **Append log.md**: Summarize all sub-Agent results
+3. **Cross-group wikilinks**: Link related pages across groups in their `## Related` sections
+4. **File verification**: Aggregate all raw record verification results
+5. **Git commit**: Single commit for all changes
 
 ### Lightweight Ingest
 If content is minimal (only 1-2 knowledge points):
