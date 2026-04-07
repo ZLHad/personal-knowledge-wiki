@@ -148,22 +148,69 @@ for domain in "${DOMAINS[@]}"; do
     fi
 done
 
-# Process CLAUDE.md template
-sed -e "s|{{WIKI_NAME}}|${WIKI_NAME}|g" \
-    -e "s|{{DATE}}|${TODAY}|g" \
-    -e "s|{{DOMAIN_TAGS}}|$(echo -e "$DOMAIN_TAGS")|g" \
-    -e "s|{{SUB_TAGS}}|- (add your sub-tags here)|g" \
-    -e "s|{{TOOL_TAGS}}|- (add your tool tags here)|g" \
-    "$PROJECT_ROOT/templates/CLAUDE.md" > "$WIKI_PATH/CLAUDE.md"
-
-# Replace domain placeholders in CLAUDE.md
+# Process CLAUDE.md template — use python for safe multiline replacement
 DOMAIN_1="${DOMAINS[0]:-general}"
 DOMAIN_2="${DOMAINS[1]:-}"
 DOMAIN_3="${DOMAINS[2]:-}"
-sed -i '' -e "s|{{DOMAIN_1}}|${DOMAIN_1}|g" \
-          -e "s|{{DOMAIN_2}}|${DOMAIN_2:-other}|g" \
-          -e "s|{{DOMAIN_3}}|${DOMAIN_3:-other}|g" \
-          "$WIKI_PATH/CLAUDE.md" 2>/dev/null || true
+
+# Collect sub-directory names for architecture tree
+SUB_1=""
+SUB_2=""
+if [ -d "$WIKI_PATH/raw/$DOMAIN_1" ]; then
+    SUB_DIRS=()
+    for sub in "$WIKI_PATH/raw/$DOMAIN_1"/*/; do
+        [ -d "$sub" ] && SUB_DIRS+=("$(basename "$sub")")
+    done
+    SUB_1="${SUB_DIRS[0]:-sub-category-1}"
+    SUB_2="${SUB_DIRS[1]:-sub-category-2}"
+fi
+
+python3 - "$PROJECT_ROOT/templates/CLAUDE.md" "$WIKI_PATH/CLAUDE.md" \
+    "$WIKI_NAME" "$TODAY" "$DOMAIN_1" "${DOMAIN_2:-other}" "${DOMAIN_3:-other}" \
+    "$SUB_1" "$SUB_2" <<'PYEOF'
+import sys
+template_path = sys.argv[1]
+output_path = sys.argv[2]
+wiki_name = sys.argv[3]
+today = sys.argv[4]
+domain_1 = sys.argv[5]
+domain_2 = sys.argv[6]
+domain_3 = sys.argv[7]
+sub_1 = sys.argv[8] if len(sys.argv) > 8 and sys.argv[8] else "sub-category-1"
+sub_2 = sys.argv[9] if len(sys.argv) > 9 and sys.argv[9] else "sub-category-2"
+
+with open(template_path, 'r') as f:
+    content = f.read()
+
+# Build domain tags
+domain_tags_input = sys.stdin.read() if not sys.stdin.isatty() else ""
+# Domain tags are passed via environment instead
+
+content = content.replace("{{WIKI_NAME}}", wiki_name)
+content = content.replace("{{DATE}}", today)
+content = content.replace("{{DOMAIN_1}}", domain_1)
+content = content.replace("{{DOMAIN_2}}", domain_2)
+content = content.replace("{{DOMAIN_3}}", domain_3)
+content = content.replace("{{SUB_1}}", sub_1)
+content = content.replace("{{SUB_2}}", sub_2)
+content = content.replace("{{SUB_TAGS}}", "- (add your sub-tags here)")
+content = content.replace("{{TOOL_TAGS}}", "- (add your tool tags here)")
+
+with open(output_path, 'w') as f:
+    f.write(content)
+PYEOF
+
+# Now replace DOMAIN_TAGS using python (handles multiline safely)
+python3 -c "
+import sys
+domain_tags = sys.argv[1]
+path = sys.argv[2]
+with open(path, 'r') as f:
+    content = f.read()
+content = content.replace('{{DOMAIN_TAGS}}', domain_tags)
+with open(path, 'w') as f:
+    f.write(content)
+" "$(echo -e "$DOMAIN_TAGS")" "$WIKI_PATH/CLAUDE.md"
 
 print_step "CLAUDE.md (wiki schema)"
 
@@ -292,9 +339,10 @@ if [[ "$INIT_GIT" == "y" ]]; then
 .DS_Store
 GITEOF
 
-    git init
-    git add -A
-    git commit -m "init: personal knowledge wiki"
+    GIT_CMD=$(command -v git 2>/dev/null || echo "/usr/bin/git")
+    $GIT_CMD init
+    $GIT_CMD add -A
+    $GIT_CMD commit -m "init: personal knowledge wiki"
     print_step "Git repository initialized with initial commit"
 fi
 
