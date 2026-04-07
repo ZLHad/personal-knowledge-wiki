@@ -1,6 +1,6 @@
 # Personal Knowledge Wiki
 
-![Personal Knowledge Wiki](cover.jpg)
+![Personal Knowledge Wiki](cover-constellation.jpg)
 
 [中文版 README](README_CN.md)
 
@@ -8,7 +8,7 @@
 
 An open-source framework for building a **personal knowledge base** where you curate sources and ask questions, while **Claude Code** handles all the bookkeeping — summarizing, cross-referencing, filing, quality control, and maintenance.
 
-One interactive script. Three Claude Code skills. Zero databases. Just plain markdown files that compound over time.
+One interactive script. Five Claude Code skills. Zero databases. Just plain markdown files that compound over time.
 
 Inspired by [Andrej Karpathy's LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) pattern and the [Obsidian](https://obsidian.md) local-first philosophy.
 
@@ -24,14 +24,7 @@ Traditional note-taking is broken:
 
 This project fixes that by treating knowledge management as a **compilation process**:
 
-```
-                         ┌─────────────────────────────┐
-  Conversations          │                             │
-  Papers         ───→    │   LLM Compiler (Claude)     │   ───→  Structured Wiki
-  Notes                  │                             │         with cross-references
-  Articles               │   ingest │ query │ lint     │         and quality control
-                         └─────────────────────────────┘
-```
+![Architecture — from raw sources to structured wiki](cover-architecture.jpg)
 
 **Key insight from Karpathy**: The LLM doesn't just answer questions — it **maintains a persistent wiki**. Every piece of knowledge gets compiled into interconnected pages, not dumped into isolated files.
 
@@ -442,7 +435,8 @@ personal-knowledge-wiki/
 ├── README.md                  # English documentation (this file)
 ├── README_CN.md               # Chinese documentation
 ├── LICENSE                    # MIT License
-├── cover.jpg                  # Project cover image
+├── cover-constellation.jpg    # Banner — knowledge graph constellation
+├── cover-architecture.jpg     # Architecture — compilation pipeline
 │
 ├── scripts/
 │   └── setup.sh               # Interactive one-command setup (EN/中文)

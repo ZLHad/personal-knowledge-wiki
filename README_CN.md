@@ -1,6 +1,6 @@
 # 个人知识 Wiki
 
-![Personal Knowledge Wiki](cover.jpg)
+![Personal Knowledge Wiki](cover-constellation.jpg)
 
 [English README](README.md)
 
@@ -24,14 +24,7 @@
 
 本项目将知识管理视为一个 **编译过程**：
 
-```
-                         ┌─────────────────────────────┐
-  对话                    │                             │
-  论文         ───→       │   LLM 编译器 (Claude)        │   ───→  结构化 Wiki
-  笔记                    │                             │         带交叉引用
-  文章                    │   ingest │ query │ lint     │         和质量控制
-                         └─────────────────────────────┘
-```
+![架构 — 从原始资料到结构化 wiki](cover-architecture.jpg)
 
 **Karpathy 的核心洞察**：LLM 不只是回答问题——它**维护一个持久化的 wiki**。每一条知识都被编译进互相连接的页面网络，而不是堆进孤立的文件里。
 
@@ -441,7 +434,8 @@ personal-knowledge-wiki/
 ├── README.md                  # 英文文档
 ├── README_CN.md               # 中文文档（本文件）
 ├── LICENSE                    # MIT 许可证
-├── cover.jpg                  # 项目封面图
+├── cover-constellation.jpg    # 顶部横幅 — 知识星图
+├── cover-architecture.jpg     # 架构图 — 编译流程
 │
 ├── scripts/
 │   └── setup.sh               # 交互式一键安装（英文/中文）
