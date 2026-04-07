@@ -10,7 +10,7 @@ An open-source framework for building a **personal knowledge base** where you cu
 
 One interactive script. Three Claude Code skills. Zero databases. Just plain markdown files that compound over time.
 
-Inspired by [Andrej Karpathy's LLM Wiki](https://gist.github.com/karpathy/1dd0294ef9567971c1e4348a90d69285) pattern, [GBrain](https://github.com/jmozzart/gbrain)'s codified lint rules, and the [Obsidian](https://obsidian.md) local-first philosophy.
+Inspired by [Andrej Karpathy's LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) pattern and the [Obsidian](https://obsidian.md) local-first philosophy.
 
 ---
 
@@ -68,7 +68,7 @@ Your Wiki/
 
 **The core rule**: `raw/` is history (immutable), `wiki/` is truth (always current), `log.md` is the operation log (append-only).
 
-### Three Operations
+### Five Operations
 
 #### 1. Ingest — Feed knowledge in
 
@@ -122,7 +122,35 @@ Claude:
 | 7 | File naming | Files follow naming conventions |
 | 8 | Stale detection | Flags 90+ day old pages with newer sources |
 
-**Why hard-coded rules?** Inspired by [GBrain](https://github.com/jmozzart/gbrain). Pure LLM judgment is unreliable for quality control — the LLM "forgets" to check certain rules. These 8 rules are **deterministic** and execute completely every time. Soft analysis (contradictions, thin pages, missing links) supplements them.
+**Why hard-coded rules?** Pure LLM judgment is unreliable for quality control — the LLM "forgets" to check certain rules. These 8 rules are **deterministic** and execute completely every time. Soft analysis (contradictions, thin pages, missing links) supplements them.
+
+#### 4. Migrate — Batch import existing notes
+
+Designed for first-time setup or importing from other note systems (Notion, Obsidian, Roam, plain markdown). Scans a directory, auto-classifies each file, and bulk-creates raw records + wiki pages.
+
+```
+You: migrate notes from ~/old-notes/
+Claude:
+  1. Scans directory → found 23 markdown files
+  2. Shows classification plan for approval
+  3. Batch-creates raw records + wiki pages
+  4. Reports: 23 files → 18 new wiki pages + 4 updated
+  5. Recommends: run lint, these 3 pages need more detail
+```
+
+#### 5. Export — Publish as a static website
+
+Export `wiki/` as a browsable static site. Supports MkDocs Material (search + dark mode), Quartz (Obsidian-like graph view), or simple standalone HTML.
+
+```
+You: export wiki as website
+Claude:
+  1. Asks format preference (MkDocs / Quartz / Simple HTML)
+  2. Converts [[wikilinks]] → standard links
+  3. Generates navigation, search index
+  4. Outputs to site/ directory
+  5. Shows deploy options (GitHub Pages, Netlify, Vercel)
+```
 
 ### Four Page Types
 
@@ -161,9 +189,14 @@ bash scripts/setup.sh
 
 ### What the Setup Script Does
 
-The script is **fully interactive** — it asks questions and builds everything for you:
+The script is **fully interactive** with **English / 中文** language support — it asks questions and builds everything for you:
 
 ```
+Language / 语言选择:
+  1. English (default)
+  2. 中文
+Choose [1/2]: 1
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Step 1/5: Wiki Location
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -188,15 +221,16 @@ Domain 3: (enter to finish)
 [✓] wiki/        (LLM-maintained compiled knowledge)
 [✓] meta/        (lint reports, diagnostics)
 [✓] CLAUDE.md    (wiki schema)
-[✓] log.md       (timeline)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Step 4/5: Installing Claude Code Skills
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-[✓] wiki-ingest → ~/.claude/skills/wiki-ingest
-[✓] wiki-lint   → ~/.claude/skills/wiki-lint
-[✓] wiki-query  → ~/.claude/skills/wiki-query
+[✓] wiki-ingest  → ~/.claude/skills/wiki-ingest
+[✓] wiki-lint    → ~/.claude/skills/wiki-lint
+[✓] wiki-query   → ~/.claude/skills/wiki-query
+[✓] wiki-migrate → ~/.claude/skills/wiki-migrate
+[✓] wiki-export  → ~/.claude/skills/wiki-export
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Step 5/5: Obsidian Configuration
@@ -204,7 +238,9 @@ Domain 3: (enter to finish)
 
 [✓] Minimal theme installed
 [✓] 7 plugins downloaded and registered
-[✓] Wikilink mode configured
+[✓] Templater templates installed (4 page types)
+[✓] Dataview dashboard
+[✓] Claude Code project settings
 ```
 
 ### After Setup
@@ -297,7 +333,7 @@ Claude: Wiki Lint Report - 2026-04-07
 
 ### Skills Work Globally
 
-All three skills are installed to `~/.claude/skills/` with your wiki path hardcoded. You can trigger them **from any project directory**:
+All five skills are installed to `~/.claude/skills/` with your wiki path hardcoded. You can trigger them **from any project directory**:
 
 ```bash
 # Working on a React project
@@ -318,6 +354,8 @@ claude
 | **Ingest** | "ingest this conversation", "save to wiki", "extract knowledge", "wiki ingest", "update knowledge base" |
 | **Query** | "search wiki", "wiki query", "check knowledge base", "what does my wiki say about", "look up in wiki" |
 | **Lint** | "lint wiki", "wiki health check", "wiki diagnostics", "check wiki" |
+| **Migrate** | "migrate notes", "import notes", "batch import", "migrate from Notion" |
+| **Export** | "export wiki", "publish wiki", "build wiki site", "generate static site" |
 
 ### Adding New Domains
 
@@ -393,7 +431,7 @@ The old pattern of "one conversation → one standalone file" creates knowledge 
 
 ### Why Obsidian as the IDE?
 
-As [Karpathy noted](https://x.com/karpathy/status/1761467904737067456): plain-text files on disk, extensive plugin ecosystem, high composability with other tools. And as [Kepano (Obsidian CEO) suggested](https://x.com/kepano/status/2039831289533227446): Obsidian is the browser, Claude Code is the engine.
+Plain-text files on disk, extensive plugin ecosystem, high composability with other tools. As the Obsidian team puts it: **Obsidian is the browser, the LLM is the engine**.
 
 ---
 
@@ -404,31 +442,44 @@ personal-knowledge-wiki/
 ├── README.md                  # English documentation (this file)
 ├── README_CN.md               # Chinese documentation
 ├── LICENSE                    # MIT License
-├── .gitignore
+├── cover.jpg                  # Project cover image
 │
-├── templates/                 # Template files with {{placeholders}}
-│   ├── CLAUDE.md              # Wiki schema template
-│   ├── index.md               # Empty index template
-│   └── log.md                 # Initial log template
+├── scripts/
+│   └── setup.sh               # Interactive one-command setup (EN/中文)
 │
-├── skills/                    # Claude Code skills (installed to ~/.claude/skills/)
-│   ├── wiki-ingest/           # Knowledge ingestion skill
-│   │   ├── SKILL.md           # Skill definition
+├── skills/                    # Claude Code skills (→ ~/.claude/skills/)
+│   ├── wiki-ingest/           # Knowledge ingestion
+│   │   ├── SKILL.md
 │   │   └── references/        # Extraction strategy guides
 │   │       ├── academic-writing-guide.md
 │   │       ├── technical-task-guide.md
 │   │       └── reading-notes-guide.md
-│   ├── wiki-lint/             # Health check skill
-│   │   └── SKILL.md           # 8 hard rules + soft analysis
-│   └── wiki-query/            # Knowledge retrieval skill
-│       └── SKILL.md           # Search + synthesize + archive
+│   ├── wiki-lint/             # 8 hard rules + soft analysis
+│   │   └── SKILL.md
+│   ├── wiki-query/            # Multi-strategy search + synthesis
+│   │   └── SKILL.md
+│   ├── wiki-migrate/          # Batch import from other systems
+│   │   └── SKILL.md
+│   └── wiki-export/           # Static site generation
+│       └── SKILL.md
 │
-├── scripts/                   # Automation
-│   └── setup.sh               # Interactive one-command setup
+├── templates/                 # Template files with {{placeholders}}
+│   ├── CLAUDE.md              # Wiki schema template
+│   ├── index.md               # Empty index template
+│   ├── log.md                 # Initial log template
+│   ├── settings.json          # Claude Code project settings
+│   └── obsidian/              # Obsidian templates
+│       ├── entity-template.md     # Templater: entity page
+│       ├── concept-template.md    # Templater: concept page
+│       ├── topic-template.md      # Templater: topic page
+│       ├── synthesis-template.md  # Templater: synthesis page
+│       └── dashboard.md          # Dataview dashboard (8 queries)
 │
 └── examples/                  # Example wiki pages
-    ├── entity-example.md      # Sample entity page (React)
-    └── concept-example.md     # Sample concept page (DRY principle)
+    ├── entity-example.md      # React (entity)
+    ├── concept-example.md     # DRY principle (concept)
+    ├── topic-example.md       # Code Review Best Practices (topic)
+    └── synthesis-example.md   # When to Abstract vs Duplicate (synthesis)
 ```
 
 ---
@@ -440,12 +491,12 @@ This is a framework, not a product. Fork it, customize it, make it yours.
 ### Ideas for Extension
 
 - [ ] Additional extraction guides (meeting notes, code review, lecture notes)
-- [ ] Dataview query template library
-- [ ] CSS snippets for enhanced wiki styling
+- [ ] CSS snippets for enhanced wiki styling in Obsidian
 - [ ] Additional lint rules (circular references, broken images, etc.)
-- [ ] Export skills (Marp slides, PDF summary, cheat sheet generator)
 - [ ] Spaced repetition skill (surface pages for periodic review)
 - [ ] Multi-vault support (separate vaults for work/personal)
+- [ ] Automated periodic lint via cron / git hooks
+- [ ] Knowledge graph statistics dashboard in `meta/`
 
 ### How to Contribute
 
@@ -477,11 +528,9 @@ A: Push your wiki to a private GitHub repo. The setup script can initialize git 
 
 ## Credits
 
-- [Andrej Karpathy](https://gist.github.com/karpathy/1dd0294ef9567971c1e4348a90d69285) — LLM Wiki pattern and the core insight
-- [GBrain](https://github.com/jmozzart/gbrain) — Codified lint rules inspiration
+- [Andrej Karpathy](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) — LLM Wiki pattern and the core insight
 - [Obsidian](https://obsidian.md) — Local-first knowledge IDE
 - [Claude Code](https://claude.ai/code) — LLM engine powering all operations
-- [Kepano](https://x.com/kepano) — Obsidian CEO, vault architecture advice
 
 ---
 

@@ -50,15 +50,104 @@ echo ""
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# ─── Step 1: Wiki Location ──────────────────────────────────────
-print_header "Step 1/5: Wiki Location"
+# ─── Step 0: Language Selection ─────────────────────────────────
+echo -e "${BOLD}Language / 语言选择:${NC}"
+echo "  1. English (default)"
+echo "  2. 中文"
+read -p "Choose [1/2]: " LANG_CHOICE
+LANG_CHOICE="${LANG_CHOICE:-1}"
 
-read -p "Where to create the wiki? (full path, e.g. ~/Documents/Personal Knowledge): " WIKI_PATH
+if [[ "$LANG_CHOICE" == "2" ]]; then
+    WIKI_LANG="zh"
+else
+    WIKI_LANG="en"
+fi
+print_step "Language: $([ "$WIKI_LANG" = "zh" ] && echo "中文" || echo "English")"
+
+# ─── Localized prompts ──────────────────────────────────────────
+if [[ "$WIKI_LANG" == "zh" ]]; then
+    L_STEP1="步骤 1/5：Wiki 位置"
+    L_WIKI_PATH_PROMPT="Wiki 创建位置（完整路径，如 ~/Documents/个人知识库）: "
+    L_DIR_EXISTS="目录已存在: "
+    L_CONTINUE="是否继续在该目录中设置？(y/n): "
+    L_STEP2="步骤 2/5：配置知识领域"
+    L_WIKI_NAME_PROMPT="Wiki 名称（如 '个人知识库'、'科研 Wiki'）: "
+    L_DOMAIN_INTRO="定义你的知识领域（将成为 raw/ 下的顶级目录）。"
+    L_DOMAIN_EXAMPLES="示例：科研、阅读、工作、生活、编程"
+    L_DOMAIN_PROMPT="领域 "
+    L_DOMAIN_EMPTY="（留空结束）: "
+    L_SUB_PROMPT="  '$DOMAIN' 的子分类（逗号分隔，如 '论文,笔记,工具'）: "
+    L_NO_DOMAIN="未指定领域，已创建默认目录: raw/general/"
+    L_STEP3="步骤 3/5：创建 Wiki 目录结构"
+    L_STEP4="步骤 4/5：安装 Claude Code 技能"
+    L_STEP5="步骤 5/5：Obsidian 配置"
+    L_OB_PROMPT="安装 Obsidian 插件和主题？(y/n): "
+    L_GIT_PROMPT="初始化 git 仓库？(y/n): "
+    L_FINISH="完成"
+    L_COMPLETE="设置完成！"
+    L_WIKI_READY="你的 Wiki 已准备就绪: "
+    L_SETUP_LIST="已配置内容："
+    L_NEXT_STEPS="后续步骤："
+    L_NEXT1="在 Obsidian 中打开上述路径作为 vault"
+    L_NEXT2="在 设置 → 社区插件 中启用社区插件"
+    L_NEXT3="启动 Claude Code 并说："
+    L_NEXT3_CMD="导入这段对话"
+    L_NEXT4="浏览你的 wiki，提问，让知识复利增长"
+    L_OPS="操作指令："
+    L_OPS1="导入"
+    L_OPS1_CMD="\"导入知识库\" / \"保存到 wiki\""
+    L_OPS2="查询"
+    L_OPS2_CMD="\"搜索知识库\" / \"查询 wiki\""
+    L_OPS3="检查"
+    L_OPS3_CMD="\"检查知识库\" / \"wiki 健康检查\""
+    L_HAPPY="祝你知识构建愉快！🧠"
+else
+    L_STEP1="Step 1/5: Wiki Location"
+    L_WIKI_PATH_PROMPT="Where to create the wiki? (full path, e.g. ~/Documents/Personal Knowledge): "
+    L_DIR_EXISTS="Directory already exists: "
+    L_CONTINUE="Continue and set up inside it? (y/n): "
+    L_STEP2="Step 2/5: Configure Your Domains"
+    L_WIKI_NAME_PROMPT="Wiki name (e.g. 'Personal Knowledge', 'Research Wiki'): "
+    L_DOMAIN_INTRO="Define your knowledge domains (these become top-level directories under raw/)."
+    L_DOMAIN_EXAMPLES="Examples: research, reading, work, life, programming"
+    L_DOMAIN_PROMPT="Domain "
+    L_DOMAIN_EMPTY="(leave empty to finish): "
+    L_SUB_PROMPT="  Sub-categories for '$DOMAIN' (comma-separated, e.g. 'papers,notes,tools'): "
+    L_NO_DOMAIN="No domains specified, created default: raw/general/"
+    L_STEP3="Step 3/5: Creating Wiki Structure"
+    L_STEP4="Step 4/5: Installing Claude Code Skills"
+    L_STEP5="Step 5/5: Obsidian Configuration"
+    L_OB_PROMPT="Install Obsidian plugins and theme? (y/n): "
+    L_GIT_PROMPT="Initialize git repository? (y/n): "
+    L_FINISH="Finishing Up"
+    L_COMPLETE="Setup Complete!"
+    L_WIKI_READY="Your wiki is ready at: "
+    L_SETUP_LIST="What's been set up:"
+    L_NEXT_STEPS="Next steps:"
+    L_NEXT1="Open the path above in Obsidian as a vault"
+    L_NEXT2="Enable community plugins in Settings → Community plugins"
+    L_NEXT3="Start Claude Code and say: "
+    L_NEXT3_CMD="ingest this conversation"
+    L_NEXT4="Browse your wiki, ask questions, let it compound"
+    L_OPS="Operations:"
+    L_OPS1="ingest"
+    L_OPS1_CMD="\"ingest this conversation\" / \"save to wiki\""
+    L_OPS2="query"
+    L_OPS2_CMD="\"search wiki\" / \"check knowledge base\""
+    L_OPS3="lint"
+    L_OPS3_CMD="\"lint wiki\" / \"wiki health check\""
+    L_HAPPY="Happy knowledge building! 🧠"
+fi
+
+# ─── Step 1: Wiki Location ──────────────────────────────────────
+print_header "$L_STEP1"
+
+read -p "$L_WIKI_PATH_PROMPT" WIKI_PATH
 WIKI_PATH="${WIKI_PATH/#\~/$HOME}"
 
 if [ -d "$WIKI_PATH" ]; then
-    print_warn "Directory already exists: $WIKI_PATH"
-    read -p "Continue and set up inside it? (y/n): " CONFIRM
+    print_warn "${L_DIR_EXISTS}$WIKI_PATH"
+    read -p "$L_CONTINUE" CONFIRM
     [[ "$CONFIRM" != "y" ]] && echo "Aborted." && exit 1
 fi
 
@@ -66,25 +155,29 @@ mkdir -p "$WIKI_PATH"
 print_step "Wiki directory: $WIKI_PATH"
 
 # ─── Step 2: Wiki Name & Domains ────────────────────────────────
-print_header "Step 2/5: Configure Your Domains"
+print_header "$L_STEP2"
 
-read -p "Wiki name (e.g. 'Personal Knowledge', 'Research Wiki'): " WIKI_NAME
+read -p "$L_WIKI_NAME_PROMPT" WIKI_NAME
 WIKI_NAME="${WIKI_NAME:-Personal Knowledge}"
 
 echo ""
-echo "Define your knowledge domains (these become top-level directories under raw/)."
-echo "Examples: research, reading, work, life, programming"
+echo "$L_DOMAIN_INTRO"
+echo "$L_DOMAIN_EXAMPLES"
 echo ""
 
 DOMAINS=()
 DOMAIN_TAGS=""
 i=1
 while true; do
-    read -p "Domain $i (leave empty to finish): " DOMAIN
+    read -p "${L_DOMAIN_PROMPT}$i ${L_DOMAIN_EMPTY}" DOMAIN
     [[ -z "$DOMAIN" ]] && break
     DOMAINS+=("$DOMAIN")
 
-    read -p "  Sub-categories for '$DOMAIN' (comma-separated, e.g. 'papers,notes,tools'): " SUBS
+    if [[ "$WIKI_LANG" == "zh" ]]; then
+        read -p "  '$DOMAIN' 的子分类（逗号分隔，如 '论文,笔记,工具'）: " SUBS
+    else
+        read -p "  Sub-categories for '$DOMAIN' (comma-separated, e.g. 'papers,notes,tools'): " SUBS
+    fi
     IFS=',' read -ra SUB_ARRAY <<< "$SUBS"
 
     mkdir -p "$WIKI_PATH/raw/$DOMAIN"
@@ -107,11 +200,11 @@ if [ ${#DOMAINS[@]} -eq 0 ]; then
     DOMAINS=("general")
     mkdir -p "$WIKI_PATH/raw/general"
     DOMAIN_TAGS="- \`general\`\n"
-    print_warn "No domains specified, created default: raw/general/"
+    print_warn "$L_NO_DOMAIN"
 fi
 
 # ─── Step 3: Create Directory Structure ──────────────────────────
-print_header "Step 3/5: Creating Wiki Structure"
+print_header "$L_STEP3"
 
 mkdir -p "$WIKI_PATH/raw/assets"
 mkdir -p "$WIKI_PATH/wiki/entities"
@@ -223,12 +316,12 @@ cp "$PROJECT_ROOT/templates/index.md" "$WIKI_PATH/wiki/index.md"
 print_step "wiki/index.md (master catalog)"
 
 # ─── Step 4: Install Claude Code Skills ──────────────────────────
-print_header "Step 4/5: Installing Claude Code Skills"
+print_header "$L_STEP4"
 
 SKILLS_DIR="$HOME/.claude/skills"
 mkdir -p "$SKILLS_DIR"
 
-for skill in wiki-ingest wiki-lint wiki-query wiki-migrate; do
+for skill in wiki-ingest wiki-lint wiki-query wiki-migrate wiki-export; do
     SKILL_SRC="$PROJECT_ROOT/skills/$skill"
     SKILL_DST="$SKILLS_DIR/$skill"
 
@@ -247,9 +340,9 @@ for skill in wiki-ingest wiki-lint wiki-query wiki-migrate; do
 done
 
 # ─── Step 5: Obsidian Setup ─────────────────────────────────────
-print_header "Step 5/5: Obsidian Configuration"
+print_header "$L_STEP5"
 
-read -p "Install Obsidian plugins and theme? (y/n): " INSTALL_OB
+read -p "$L_OB_PROMPT" INSTALL_OB
 if [[ "$INSTALL_OB" == "y" ]]; then
     OB_DIR="$WIKI_PATH/.obsidian"
     mkdir -p "$OB_DIR/plugins" "$OB_DIR/themes"
@@ -393,9 +486,9 @@ if [ -f "$PROJECT_ROOT/templates/settings.json" ]; then
 fi
 
 # ─── Step 6: Git Init ───────────────────────────────────────────
-print_header "Finishing Up"
+print_header "$L_FINISH"
 
-read -p "Initialize git repository? (y/n): " INIT_GIT
+read -p "$L_GIT_PROMPT" INIT_GIT
 if [[ "$INIT_GIT" == "y" ]]; then
     cd "$WIKI_PATH"
 
@@ -416,30 +509,32 @@ GITEOF
 fi
 
 # ─── Summary ────────────────────────────────────────────────────
-print_header "Setup Complete!"
+print_header "$L_COMPLETE"
 
-echo -e "Your wiki is ready at: ${BOLD}$WIKI_PATH${NC}"
+echo -e "${L_WIKI_READY}${BOLD}$WIKI_PATH${NC}"
 echo ""
-echo -e "${BOLD}What's been set up:${NC}"
+echo -e "${BOLD}${L_SETUP_LIST}${NC}"
 echo -e "  ${GREEN}[✓]${NC} Wiki directory structure (raw → wiki → meta)"
-echo -e "  ${GREEN}[✓]${NC} CLAUDE.md schema with your domains"
-echo -e "  ${GREEN}[✓]${NC} Claude Code skills (wiki-ingest, wiki-lint, wiki-query, wiki-migrate)"
+echo -e "  ${GREEN}[✓]${NC} CLAUDE.md schema"
+echo -e "  ${GREEN}[✓]${NC} Claude Code skills (ingest, lint, query, migrate, export)"
 if [[ "$INSTALL_OB" == "y" ]]; then
-echo -e "  ${GREEN}[✓]${NC} Obsidian vault with Minimal theme + 7 plugins"
+echo -e "  ${GREEN}[✓]${NC} Obsidian vault + Minimal theme + 7 plugins"
+echo -e "  ${GREEN}[✓]${NC} Templater templates (4 page types)"
+echo -e "  ${GREEN}[✓]${NC} Dataview dashboard"
 fi
 if [[ "$INIT_GIT" == "y" ]]; then
 echo -e "  ${GREEN}[✓]${NC} Git repository"
 fi
 echo ""
-echo -e "${BOLD}Next steps:${NC}"
-echo -e "  1. Open ${CYAN}$WIKI_PATH${NC} in Obsidian as a vault"
-echo -e "  2. Enable community plugins in Settings → Community plugins"
-echo -e "  3. Start Claude Code and say: ${GREEN}\"ingest this conversation\"${NC}"
-echo -e "  4. Browse your wiki, ask questions, let it compound"
+echo -e "${BOLD}${L_NEXT_STEPS}${NC}"
+echo -e "  1. ${L_NEXT1}"
+echo -e "  2. ${L_NEXT2}"
+echo -e "  3. ${L_NEXT3}${GREEN}\"${L_NEXT3_CMD}\"${NC}"
+echo -e "  4. ${L_NEXT4}"
 echo ""
-echo -e "${BOLD}Operations:${NC}"
-echo -e "  ${CYAN}ingest${NC}  → \"ingest this conversation\" / \"save to wiki\""
-echo -e "  ${CYAN}query${NC}   → \"search wiki\" / \"check knowledge base\""
-echo -e "  ${CYAN}lint${NC}    → \"lint wiki\" / \"wiki health check\""
+echo -e "${BOLD}${L_OPS}${NC}"
+echo -e "  ${CYAN}${L_OPS1}${NC}  → ${L_OPS1_CMD}"
+echo -e "  ${CYAN}${L_OPS2}${NC}  → ${L_OPS2_CMD}"
+echo -e "  ${CYAN}${L_OPS3}${NC}   → ${L_OPS3_CMD}"
 echo ""
-echo -e "Happy knowledge building! 🧠"
+echo -e "$L_HAPPY"
