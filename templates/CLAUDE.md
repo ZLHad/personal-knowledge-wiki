@@ -188,16 +188,63 @@ The answer, with citations to wiki pages and raw sources.
 
 Triggered when the user adds a new source to `raw/` or asks to extract knowledge from a conversation.
 
+**Depth Levels:**
+
+| Level | Use Case | Extraction Depth |
+|-------|----------|-----------------|
+| `shallow` | Quick indexing, minimal sources | Definition + brief Details |
+| `deep` (default) | Paper notes, technical docs | Full system models, formula derivations, algorithm flows |
+| `exhaustive` | Core reference papers, deep reads | Section-by-section extraction, code examples, experiment data tables |
+
+Default is `deep`. Users can specify via parameter (e.g. `/ingest --depth shallow`). For batch processing, confirm depth level before starting.
+
+**Domain-Specific Extraction Checklists:**
+
+Apply the corresponding checklist based on the source file's domain to avoid missing key information:
+
+#### Research Papers
+```
+□ System model (variable definitions + objective function + constraints)
+□ Core formulas (full derivation chain, not just conclusions)
+□ Algorithm flow (pseudocode or step-by-step breakdown)
+□ Innovation points and baseline comparisons
+□ Experiment results (key data tables, comparison metrics)
+□ Method comparisons (if multi-method comparison tables exist)
+```
+
+#### Writing / Style Guides
+```
+□ Writing rules/patterns (reusable rules)
+□ Before/after comparisons
+□ Style preferences and habits
+□ Error examples with corrections
+```
+
+#### Tools & Workflows
+```
+□ Configuration steps (commands or settings)
+□ Usage tips (non-obvious techniques)
+□ Common problems and solutions
+```
+
 **Workflow:**
 1. Read the source material thoroughly.
 2. Discuss key takeaways with the user (unless batch mode).
 3. Write/update the source file in `raw/<domain>/` (if not already there).
-4. **Identify entities** mentioned → create or update `wiki/entities/*.md`.
-5. **Identify concepts** mentioned → create or update `wiki/concepts/*.md`.
-6. **Update topic pages** if the source contributes new rules/patterns → `wiki/topics/*.md`.
-7. **Update `wiki/index.md`** — add new pages, update summaries.
-8. **Append to `log.md`** — record what was ingested and what pages were touched.
-9. **Add `[[wikilinks]]`** in all touched pages to cross-reference related pages.
+4. **Verify raw record**: Output file size verification (confirm complete copy).
+5. **Identify entities** mentioned → create or update `wiki/entities/*.md`.
+6. **Identify concepts** mentioned → create or update `wiki/concepts/*.md`.
+7. **Apply domain checklist**: Check extraction checklist items per source domain, ensure key information is covered.
+8. **Update topic pages** if the source contributes new rules/patterns → `wiki/topics/*.md`.
+9. **Update `wiki/index.md`** — add new pages, update summaries.
+10. **Append to `log.md`** — record what was ingested and what pages were touched.
+11. **Add `[[wikilinks]]`** in all touched pages to cross-reference related pages.
+
+**Batch Ingest (3+ files):**
+- After processing files 1-2, **pause** — show wiki page samples, let user confirm depth is satisfactory
+- After confirmation, continue batch processing remaining files
+- Checkpoint every 3-5 files (git commit + brief summary) to reduce context pressure
+- After completion, output raw file verification summary
 
 **Rules:**
 - A single ingest should touch **5-15 wiki pages** on average.

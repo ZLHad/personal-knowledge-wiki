@@ -1,6 +1,6 @@
 ---
 name: wiki-ingest
-description: "Ingest knowledge into your personal Wiki. Analyzes conversations or files, extracts key knowledge, and compiles it into wiki pages (entities, concepts, topics) with cross-references. A single ingest typically touches 5-15 wiki pages. Trigger phrases: \"ingest this conversation\", \"save to wiki\", \"wiki ingest\", \"extract knowledge\", \"update knowledge base\"."
+description: "Ingest knowledge into your personal Wiki. Analyzes conversations or files, extracts key knowledge, and compiles it into wiki pages (entities, concepts, topics) with cross-references. A single ingest typically touches 5-15 wiki pages. Supports depth parameter for extraction depth control. Trigger phrases: \"ingest this conversation\", \"save to wiki\", \"wiki ingest\", \"extract knowledge\", \"update knowledge base\"."
 ---
 
 # Wiki Ingest
@@ -22,6 +22,42 @@ Before any operation, read these first:
 2. `wiki/index.md` — Full catalog (know existing pages, avoid duplicates)
 3. `log.md` — Timeline (know recent operations)
 
+## Depth Parameter
+
+Controls how deeply knowledge is extracted:
+
+| Level | Usage | Extraction Depth |
+|-------|-------|-----------------|
+| `shallow` | `/ingest --depth shallow` | Definition + brief Details, skip formula derivations |
+| `deep` (default) | `/ingest` or `/ingest --depth deep` | Full system models, formulas, algorithm flows, comparison tables |
+| `exhaustive` | `/ingest --depth exhaustive` | Section-by-section extraction, code examples, experiment data tables |
+
+## Domain-Specific Extraction Checklists
+
+Automatically apply the corresponding checklist based on the source file's domain to avoid missing key information:
+
+### Research Papers / Technical Notes
+- [ ] System model (variable definitions + objective function + constraints)
+- [ ] Core formulas (full derivation chain, not just conclusions)
+- [ ] Algorithm flow (pseudocode or step-by-step breakdown)
+- [ ] Innovation points and baseline comparisons
+- [ ] Experiment results (key data tables, comparison metrics)
+- [ ] Method comparisons (if multi-method comparison tables exist)
+
+### Writing / Style Guides
+- [ ] Writing rules/patterns (reusable rules)
+- [ ] Before/after comparisons
+- [ ] Style preferences and habits
+- [ ] Error examples with corrections
+
+### Tools & Workflows
+- [ ] Configuration steps (commands or settings)
+- [ ] Usage tips (non-obvious techniques)
+- [ ] Common problems and solutions
+
+### Other Domains
+- Organize key information by topic, no fixed checklist
+
 ## Workflow
 
 ### Step 1: Content Analysis
@@ -33,12 +69,13 @@ Quickly review the entire conversation window or file, identifying:
 - **Key knowledge outputs**: rules, patterns, concepts, tool usage, decisions
 - **Entities involved**: people, journals, conferences, projects, tools
 - **Concepts involved**: methods, theories, terms, principles
+- **Determine depth level**: Based on content complexity and user specification
 
 Report analysis results to user briefly (3-5 lines), wait for confirmation.
 
 ### Step 2: Generate Raw Record
 
-Extract core content into a raw record file.
+Extract core content into a raw record file. If the user provides an external file (paper notes, etc.), **copy the original file completely** as the raw record without modifying any content.
 
 **File path**: `raw/<domain>/<sub-category>/YYYY-MM-DD-<slug>.md`
 
@@ -155,12 +192,21 @@ Output ingest report to user:
 
 ## Special Scenarios
 
-### Batch Ingest (external files)
-If user provides external files instead of current conversation:
-1. Read file content
-2. Discuss key points (unless silent mode requested)
-3. Store in `raw/` corresponding directory
-4. Execute wiki update from Step 3 onward
+### Batch Ingest (multiple external files)
+If user provides multiple external files:
+1. Scan file list, present classification plan
+2. **Confirm depth level** (shallow/deep/exhaustive), default deep
+3. **Process file #1**: Execute full ingest workflow, show results
+4. **Sample Approval**: Show file #1's raw record + wiki page sample, ask user to confirm depth is satisfactory
+5. After user confirms, continue batch processing remaining files
+6. **Checkpoint every 3-5 files**: git commit + brief progress summary to manage context pressure
+7. After completion, output **file verification summary** and overall report
+
+**File verification summary format** (per raw record):
+```
+✓ YYYY-MM-DD-slug.md (XXkB → raw/domain/category/, complete)
+✗ bad-file.md (0kB, skipped: empty file)
+```
 
 ### Lightweight Ingest
 If content is minimal (only 1-2 knowledge points):

@@ -23,10 +23,26 @@ Batch-import existing markdown notes into the wiki. Unlike single-file **ingest*
 
 | Scenario | Use |
 |----------|-----|
-| Import 10+ files from another system | **migrate** |
-| First-time wiki setup with existing notes | **migrate** |
+| Import 50+ files, quick indexing | **migrate** (catalog mode) |
+| Import 10-50 files from another system | **migrate** (standard mode) |
+| Import <10 high-value files with full detail | **migrate** (deep mode) or per-file **ingest** |
 | Single conversation or file | **ingest** |
-| A few files needing deep analysis | **ingest** |
+
+## Depth Modes
+
+Controls how deeply knowledge is extracted during migration:
+
+| Mode | Description | Wiki Page Depth | Use Case |
+|------|-------------|----------------|----------|
+| `catalog` | Only create raw records + minimal wiki pages | Definition only | 100+ files, quick indexing |
+| `standard` (default) | Raw records + extract per domain checklist | Definition + Details + Common Pitfalls | Normal batch import |
+| `deep` | Equivalent to per-file `ingest --depth deep` | Full system models, formula derivations, algorithm flows | High-value files |
+
+Users can specify depth mode during Step 2 classification approval. If unspecified, defaults to `standard`.
+
+**Domain-Specific Extraction Checklists (standard/deep mode):**
+
+Refer to the "Domain-Specific Extraction Checklists" section in the wiki-ingest skill. Apply the corresponding checklist based on each source file's domain automatically.
 
 ## Workflow
 
@@ -75,6 +91,20 @@ Present classification plan to user for approval:
 Approve? (y/n, or specify changes)
 ```
 
+### Step 2.5: Sample Approval (when batch > 3 files)
+
+**Process file #1 first**, show complete results:
+1. Raw record (filename + size)
+2. Generated wiki page content preview
+3. Extracted entities/concepts list
+
+Ask user to confirm:
+- "Is the depth satisfactory?"
+- "Need to adjust the depth mode?"
+- "After confirmation, continue processing remaining N files"
+
+**Purpose**: Avoid completing the entire batch only to find the depth doesn't match expectations, reducing rework.
+
 ### Step 3: Batch Processing
 
 For each file in the approved plan:
@@ -87,18 +117,40 @@ For each file in the approved plan:
 - Add YAML frontmatter if missing
 - **NEVER modify the original content** — raw files are immutable
 
-#### 3.2 Extract Wiki Pages (Lightweight Mode)
-- For each file, extract **key entities and concepts only**
-- Create new wiki pages or append to existing ones
-- Use lightweight extraction (shorter than full ingest):
-  - Entity pages: Overview + Key Facts (skip detailed Notes)
-  - Concept pages: Definition + brief Details (skip Common Pitfalls unless obvious)
-  - Topic pages: Only create if file IS a topic guide; don't extract topic fragments
+#### 3.2 Verify Raw Record
+Output file verification info to confirm complete copy:
+```
+✓ 2024-12-13-react-hooks-guide.md (29KB, complete)
+✓ 2024-12-18-api-design-patterns.md (38KB, complete)
+✗ empty-file.md (0KB, skipped: empty file)
+```
 
-#### 3.3 Weave Wikilinks
+#### 3.3 Extract Wiki Pages (by depth mode)
+
+**catalog mode**:
+- Entity pages: Overview only (1-2 sentences)
+- Concept pages: Definition only (1-2 sentences)
+- No Common Pitfalls, no formula extraction
+
+**standard mode**:
+- Entity pages: Overview + Key Facts
+- Concept pages: Definition + Details (per domain checklist) + Common Pitfalls
+- Apply domain-specific extraction checklists
+
+**deep mode**:
+- Equivalent to wiki-ingest's deep level
+- Full system models, formula derivations, algorithm flows, experiment data
+- Apply domain-specific extraction checklists, confirm each item covered
+
+#### 3.4 Weave Wikilinks
 - Add `[[wikilinks]]` in all new/updated pages
 - Cross-reference related pages found during migration
 - Build `## Related` sections
+
+#### 3.5 Checkpoint (every 3-5 files)
+- Git commit current progress
+- Output brief progress summary: `Processed X/N files, created Y wiki pages`
+- Reduces context pressure during long batch sessions, prevents quality degradation near context limits
 
 ### Step 4: Update Index & Timeline
 
@@ -197,8 +249,10 @@ After migration:
 
 ## Key Principles
 
-1. **Speed over depth**: Migration prioritizes coverage over detail. Deep analysis comes later via individual ingests.
+1. **Depth is configurable**: Users control extraction depth via depth modes. Default is `standard`, not the shallowest option.
 2. **Don't lose data**: Every source file becomes a raw record, even if its wiki extraction is minimal.
-3. **User approves the plan**: Always show the classification plan before executing.
-4. **Recommend follow-ups**: Tell the user which pages need more detail after migration.
-5. **Run lint after**: Always recommend a lint check post-migration.
+3. **Sample before batch**: Process file #1 first, show results, confirm depth before continuing. Avoid rework.
+4. **Verify raw records**: Output file verification summaries confirming complete copy. Users should not need to manually check raw files.
+5. **Checkpoint regularly**: Git commit every 3-5 files to reduce context pressure and loss risk.
+6. **Apply domain checklists**: Different domains (papers, writing guides, tools) have different key information — extract per checklist to avoid missing critical content.
+7. **Run lint after**: Always recommend a lint check post-migration.
