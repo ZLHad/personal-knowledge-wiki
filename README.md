@@ -67,6 +67,8 @@ Your Wiki/
 
 Analyzes a conversation or file and **compiles** it into the wiki network. A single ingest typically touches **5-15 wiki pages** — creating/updating entity pages, concept pages, topic pages, and weaving `[[wikilinks]]` between them.
 
+**Depth control**: `shallow` (quick index) → `deep` (default, full extraction) → `exhaustive` (section-by-section with experiment data). Domain-specific checklists auto-apply based on content type (research papers, writing guides, tools).
+
 ```
 You: ingest this conversation
 Claude:
@@ -77,6 +79,8 @@ Claude:
   5. Updates wiki/index.md and log.md
   6. Reports what was touched
 ```
+
+**Batch mode (5+ files)**: Groups files by wiki-page dependencies and dispatches to parallel sub-Agents — each with its own context window — then merges results. Avoids context compaction during large imports.
 
 **What can you ingest?**
 
@@ -121,12 +125,14 @@ Claude:
 
 Designed for first-time setup or importing from other note systems (Notion, Obsidian, Roam, plain markdown). Scans a directory, auto-classifies each file, and bulk-creates raw records + wiki pages.
 
+**Three depth modes**: `catalog` (definition only, 100+ files) → `standard` (default, per-checklist extraction) → `deep` (full analysis). Processes file #1 first for sample approval before continuing the batch.
+
 ```
 You: migrate notes from ~/old-notes/
 Claude:
   1. Scans directory → found 23 markdown files
   2. Shows classification plan for approval
-  3. Batch-creates raw records + wiki pages
+  3. Processes file #1 → sample approval → parallel sub-Agents for the rest
   4. Reports: 23 files → 18 new wiki pages + 4 updated
   5. Recommends: run lint, these 3 pages need more detail
 ```

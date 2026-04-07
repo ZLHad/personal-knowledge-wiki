@@ -66,6 +66,8 @@
 
 分析对话或文件，将知识 **编译** 进 wiki 网络。一次 ingest 通常触及 **5-15 个页面**——创建/更新实体页、概念页、专题页，并织入 `[[wikilink]]` 交叉引用。
 
+**深度控制**：`shallow`（快速索引）→ `deep`（默认，完整提取）→ `exhaustive`（逐节提取含实验数据）。根据内容类型（论文笔记、写作指南、工具配置）自动应用领域提取清单。
+
 ```
 你：ingest 这次对话
 Claude：
@@ -76,6 +78,8 @@ Claude：
   5. 更新 wiki/index.md 和 log.md
   6. 报告触及了哪些页面
 ```
+
+**批量模式（5+ 文件）**：按 wiki 页面依赖分组，启动并行子 Agent（各自独立 context），处理完合并结果。避免大批量导入时 context 压缩导致的质量下降。
 
 **可以 ingest 什么？**
 
@@ -120,12 +124,14 @@ Claude：
 
 专为首次搭建或从其他笔记系统（Notion、Obsidian、Roam、纯 Markdown）迁移设计。扫描目录、自动分类、批量创建 raw 记录和 wiki 页面。
 
+**三档深度**：`catalog`（仅 Definition，100+ 文件快速索引）→ `standard`（默认，按领域清单提取）→ `deep`（完整分析）。先处理第 1 篇做 Sample Approval，确认深度满意后再继续批量。
+
 ```
 你：把 ~/old-notes/ 下的笔记迁移进来
 Claude：
   1. 扫描目录 → 发现 23 个 Markdown 文件
   2. 展示分类计划等你确认
-  3. 批量创建 raw 记录 + wiki 页面
+  3. 处理第 1 篇 → Sample Approval → 并行子 Agent 处理剩余
   4. 报告：23 个文件 → 18 个新 wiki 页面 + 4 个更新
   5. 建议：运行 lint，这 3 个页面需要补充细节
 ```
