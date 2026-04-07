@@ -179,6 +179,8 @@ Sub-Agent-A          Sub-Agent-B          Sub-Agent-C
 - Files updating the **same wiki page** go in the **same group**
 - Non-overlapping files can be freely assigned, balancing workload
 - 2-4 files per group, max 5
+- **Single-file groups**: Groups with only 1 file should be merged into the nearest related group, or processed directly by Main Agent
+- **Near-synonym deduplication**: During pre-analysis, check for near-synonyms (e.g., MEC / Edge Computing) and ensure they map to the same wiki page
 
 **Sub-Agent Responsibilities**:
 - ✅ Create raw records
@@ -215,22 +217,29 @@ Read CLAUDE.md first for format conventions.
 3. Weave wikilinks within your group's pages
 4. ❌ Do NOT modify index.md
 5. ❌ Do NOT modify log.md
-6. ❌ Do NOT create cross-group wikilinks (Main Agent handles this)
+6. ❌ Do NOT create/modify cross-group pages; you MAY use `[[wikilink]]` in body text to reference cross-group concepts, but only list your group's pages in `## Related`
+
+## Expected Pages
+Pages this group is expected to create/update:
+<Main Agent provides target page list for this group>
+Only operate on the above pages. If you discover a page that should be created but is not in your scope, add it to the suggested_pages field in your manifest.
 
 ## Output Manifest
 When done, output:
 - raw_records: [filename + size list]
 - new_pages: [new wiki page paths]
 - updated_pages: [updated wiki page paths]
+- suggested_pages: [pages suggested but outside this group's scope]
 - key_knowledge: [core takeaways]
 ```
 
 **Main Agent Wrap-up**:
 1. Merge index.md (add all new/updated pages)
 2. Append log.md (summarize all sub-Agent results)
-3. Cross-group wikilinks (link related pages across groups)
-4. File verification (aggregate all raw record checks)
-5. Git commit (single commit for all changes)
+3. Process suggested_pages (review each group's suggestions, create missing pages as needed)
+4. Cross-group wikilinks (link related pages across groups)
+5. File verification (aggregate all raw record checks)
+6. Git commit (single commit for all changes)
 
 ### Step 4: Update Index & Timeline
 

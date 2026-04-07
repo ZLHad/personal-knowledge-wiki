@@ -236,6 +236,8 @@ Main Agent pre-analyzes each file's wiki page targets before dispatching:
 - Files that update the **same wiki page** go in the **same group** (e.g. papers both touching [[MEC]])
 - Non-overlapping files can be freely assigned, balancing workload
 - 2-4 files per group, max 5
+- **Single-file groups**: Groups with only 1 file should be merged into the nearest related group, or processed directly by Main Agent
+- **Near-synonym deduplication**: During pre-analysis, check for near-synonyms (e.g., MEC / Edge Computing) and ensure they map to the same wiki page
 
 #### Sub-Agent Responsibilities
 
@@ -276,13 +278,19 @@ Read CLAUDE.md first for format conventions.
 3. Weave wikilinks within your group's pages
 4. ❌ Do NOT modify index.md
 5. ❌ Do NOT modify log.md
-6. ❌ Do NOT create cross-group wikilinks (Main Agent handles this)
+6. ❌ Do NOT create/modify cross-group pages; you MAY use `[[wikilink]]` in body text to reference cross-group concepts, but only list your group's pages in `## Related`
+
+## Expected Pages
+Pages this group is expected to create/update:
+<Main Agent provides target page list for this group>
+Only operate on the above pages. If you discover a page that should be created but is not in your scope, add it to the suggested_pages field in your manifest.
 
 ## Output Manifest
 When done, output:
 - raw_records: [filename + size list]
 - new_pages: [new wiki page paths]
 - updated_pages: [updated wiki page paths]
+- suggested_pages: [pages suggested but outside this group's scope]
 - key_knowledge: [1-2 sentence core takeaways]
 ```
 
@@ -291,9 +299,10 @@ When done, output:
 After collecting all sub-Agent manifests:
 1. **Merge index.md**: Add all new/updated pages to the catalog
 2. **Append log.md**: Summarize all sub-Agent results
-3. **Cross-group wikilinks**: Link related pages across groups in their `## Related` sections
-4. **File verification**: Aggregate all raw record verification results
-5. **Git commit**: Single commit for all changes
+3. **Process suggested_pages**: Review each group's suggested_pages, create missing pages as needed
+4. **Cross-group wikilinks**: Link related pages across groups in their `## Related` sections
+5. **File verification**: Aggregate all raw record verification results
+6. **Git commit**: Single commit for all changes
 
 ### Lightweight Ingest
 If content is minimal (only 1-2 knowledge points):
