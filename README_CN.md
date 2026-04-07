@@ -1,5 +1,7 @@
 # 个人知识 Wiki
 
+![Personal Knowledge Wiki](cover.jpg)
+
 [English README](README.md)
 
 > **LLM 不是聊天机器人，它是你的持久化 wiki 维护者。**

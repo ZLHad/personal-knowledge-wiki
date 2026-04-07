@@ -1,5 +1,7 @@
 # Personal Knowledge Wiki
 
+![Personal Knowledge Wiki](cover.jpg)
+
 [中文版 README](README_CN.md)
 
 > **Your LLM is not a chatbot. It's a persistent wiki maintainer.**
