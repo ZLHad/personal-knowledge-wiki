@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Bash(git *)",
+      "Bash(mkdir *)",
+      "Bash(ls *)",
+      "Grep",
+      "Glob"
+    ]
+  },
+  "instructions": [
+    "Always read CLAUDE.md before any wiki operation",
+    "Follow wiki schema strictly — all page formats, frontmatter, naming conventions",
+    "Never modify files in raw/ — they are immutable",
+    "Use [[wikilinks]] for all cross-references",
+    "Commit after every ingest, lint, or query-with-synthesis operation"
+  ]
+}

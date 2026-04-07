@@ -228,7 +228,7 @@ print_header "Step 4/5: Installing Claude Code Skills"
 SKILLS_DIR="$HOME/.claude/skills"
 mkdir -p "$SKILLS_DIR"
 
-for skill in wiki-ingest wiki-lint wiki-query; do
+for skill in wiki-ingest wiki-lint wiki-query wiki-migrate; do
     SKILL_SRC="$PROJECT_ROOT/skills/$skill"
     SKILL_DST="$SKILLS_DIR/$skill"
 
@@ -267,13 +267,37 @@ if [[ "$INSTALL_OB" == "y" ]]; then
 APPEOF
     print_step "Obsidian wikilink mode configured"
 
+    # Helper: download with retry and validation
+    download_file() {
+        local url="$1"
+        local dest="$2"
+        local desc="$3"
+        local attempts=0
+        local max_attempts=3
+
+        while [ $attempts -lt $max_attempts ]; do
+            curl -sL --connect-timeout 10 --max-time 60 -o "$dest" "$url" 2>/dev/null
+            if [ -f "$dest" ] && [ -s "$dest" ]; then
+                return 0
+            fi
+            ((attempts++))
+            [ $attempts -lt $max_attempts ] && sleep 1
+        done
+
+        print_warn "Failed to download $desc after $max_attempts attempts"
+        rm -f "$dest"
+        return 1
+    }
+
     # Install Minimal theme
     print_info "Downloading Minimal theme..."
     mkdir -p "$OB_DIR/themes/Minimal"
-    curl -sL -o "$OB_DIR/themes/Minimal/theme.css" \
-        "https://github.com/kepano/obsidian-minimal/releases/latest/download/theme.css"
-    curl -sL -o "$OB_DIR/themes/Minimal/manifest.json" \
-        "https://raw.githubusercontent.com/kepano/obsidian-minimal/master/manifest.json"
+    download_file \
+        "https://github.com/kepano/obsidian-minimal/releases/latest/download/theme.css" \
+        "$OB_DIR/themes/Minimal/theme.css" "Minimal theme CSS"
+    download_file \
+        "https://raw.githubusercontent.com/kepano/obsidian-minimal/master/manifest.json" \
+        "$OB_DIR/themes/Minimal/manifest.json" "Minimal theme manifest"
     print_step "Minimal theme installed"
 
     # appearance.json
@@ -303,15 +327,23 @@ APPEEOF
 
         print_info "Downloading $PLUGIN_ID..."
         mkdir -p "$OB_DIR/plugins/$PLUGIN_ID"
-        curl -sL -o "$OB_DIR/plugins/$PLUGIN_ID/main.js" \
-            "https://github.com/$REPO/releases/latest/download/main.js"
-        curl -sL -o "$OB_DIR/plugins/$PLUGIN_ID/manifest.json" \
-            "https://github.com/$REPO/releases/latest/download/manifest.json"
-        curl -sL -o "$OB_DIR/plugins/$PLUGIN_ID/styles.css" \
-            "https://github.com/$REPO/releases/latest/download/styles.css" 2>/dev/null || true
+        if download_file \
+            "https://github.com/$REPO/releases/latest/download/main.js" \
+            "$OB_DIR/plugins/$PLUGIN_ID/main.js" "$PLUGIN_ID main.js"; then
 
-        PLUGIN_IDS="$PLUGIN_IDS\"$PLUGIN_ID\","
-        print_step "$PLUGIN_ID installed"
+            download_file \
+                "https://github.com/$REPO/releases/latest/download/manifest.json" \
+                "$OB_DIR/plugins/$PLUGIN_ID/manifest.json" "$PLUGIN_ID manifest"
+            download_file \
+                "https://github.com/$REPO/releases/latest/download/styles.css" \
+                "$OB_DIR/plugins/$PLUGIN_ID/styles.css" "$PLUGIN_ID styles" 2>/dev/null || true
+
+            PLUGIN_IDS="$PLUGIN_IDS\"$PLUGIN_ID\","
+            print_step "$PLUGIN_ID installed"
+        else
+            print_warn "$PLUGIN_ID skipped (download failed — install manually in Obsidian later)"
+            rm -rf "$OB_DIR/plugins/$PLUGIN_ID"
+        fi
     done
 
     PLUGIN_IDS="${PLUGIN_IDS%,}]"
@@ -319,8 +351,45 @@ APPEEOF
     echo "$PLUGIN_IDS" > "$OB_DIR/community-plugins.json"
 
     print_step "All plugins registered"
+
+    # Install Templater templates
+    TEMPLATE_DIR="$WIKI_PATH/.obsidian-templates"
+    mkdir -p "$TEMPLATE_DIR"
+    for tmpl in entity-template concept-template topic-template synthesis-template; do
+        if [ -f "$PROJECT_ROOT/templates/obsidian/$tmpl.md" ]; then
+            cp "$PROJECT_ROOT/templates/obsidian/$tmpl.md" "$TEMPLATE_DIR/$tmpl.md"
+        fi
+    done
+    print_step "Templater templates installed (4 page types)"
+
+    # Configure Templater to use template directory
+    TEMPLATER_DIR="$OB_DIR/plugins/obsidian-templater-plugin"
+    if [ -d "$TEMPLATER_DIR" ]; then
+        cat > "$TEMPLATER_DIR/data.json" << TMPLEOF
+{
+  "templates_folder": ".obsidian-templates",
+  "trigger_on_file_creation": false,
+  "auto_jump_to_cursor": true,
+  "command_timeout": 5
+}
+TMPLEOF
+    fi
+
+    # Install Dataview dashboard
+    if [ -f "$PROJECT_ROOT/templates/obsidian/dashboard.md" ]; then
+        cp "$PROJECT_ROOT/templates/obsidian/dashboard.md" "$WIKI_PATH/wiki/dashboard.md"
+        print_step "Dataview dashboard (wiki/dashboard.md)"
+    fi
 else
     print_info "Skipping Obsidian setup. You can configure it manually later."
+fi
+
+# ─── Claude Code Project Settings ──────────────────────────────
+CLAUDE_PROJECT_DIR="$WIKI_PATH/.claude"
+mkdir -p "$CLAUDE_PROJECT_DIR"
+if [ -f "$PROJECT_ROOT/templates/settings.json" ]; then
+    cp "$PROJECT_ROOT/templates/settings.json" "$CLAUDE_PROJECT_DIR/settings.json"
+    print_step "Claude Code project settings (.claude/settings.json)"
 fi
 
 # ─── Step 6: Git Init ───────────────────────────────────────────
@@ -354,7 +423,7 @@ echo ""
 echo -e "${BOLD}What's been set up:${NC}"
 echo -e "  ${GREEN}[✓]${NC} Wiki directory structure (raw → wiki → meta)"
 echo -e "  ${GREEN}[✓]${NC} CLAUDE.md schema with your domains"
-echo -e "  ${GREEN}[✓]${NC} Claude Code skills (wiki-ingest, wiki-lint, wiki-query)"
+echo -e "  ${GREEN}[✓]${NC} Claude Code skills (wiki-ingest, wiki-lint, wiki-query, wiki-migrate)"
 if [[ "$INSTALL_OB" == "y" ]]; then
 echo -e "  ${GREEN}[✓]${NC} Obsidian vault with Minimal theme + 7 plugins"
 fi
