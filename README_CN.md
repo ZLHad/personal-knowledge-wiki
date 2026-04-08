@@ -2,7 +2,10 @@
 
 ![Personal Knowledge Wiki](cover-constellation.jpg)
 
-[English README](README.md)
+<p align="center">
+  <a href="https://zlhad.github.io/personal-knowledge-wiki/"><strong>🌐 在线演示 & 产品介绍</strong></a> ·
+  <a href="README.md">English README</a>
+</p>
 
 > **LLM 不是聊天机器人，它是你的持久化 wiki 维护者。**
 
