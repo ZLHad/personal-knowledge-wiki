@@ -43,13 +43,23 @@ This script:
 3. Pre-configures `quartz.config.ts` (title, locale, ignorePatterns excluding dashboard.md)
 4. Does NOT touch or copy your `wiki/` content — it points directly at it via `--directory` flag
 
-### Preview locally
+### Preview locally (with hot reload)
 
 ```bash
-cd site && npx quartz build --directory ../wiki --serve --port 4321
+cd site && npx quartz build --directory ../wiki --serve --watch --port 4321
 ```
 
 Then open **http://localhost:4321** — you'll see your wiki with graph view, search, and popover previews.
+
+**Hot reload is on** (`--watch` flag): edits to any `wiki/*.md` file in Obsidian trigger an incremental rebuild (~200ms) and the browser refreshes automatically. Leave this server running while you write.
+
+### Update workflow (three scenarios)
+
+| Scenario | Command | Behavior |
+|----------|---------|----------|
+| **Hot reload** (daily writing) | `... --serve --watch --port 4321` | Edit-save in Obsidian → auto rebuild + browser refresh |
+| **One-shot preview** | `... --serve --port 4321` | Manual start, full rebuild each time, `Ctrl+C` to stop |
+| **Deployed** (GitHub/Cloudflare/Netlify/Vercel) | Platform CI runs `npx quartz build --directory ../wiki` on git push | Edit → commit → push → deployed in 1-2 min |
 
 ### Reset
 
@@ -206,7 +216,7 @@ After building, inform the user:
 
 ### Preview Locally
   mkdocs serve          # MkDocs
-  npx quartz build --serve  # Quartz
+  npx quartz build --directory ../wiki --serve --watch --port 4321  # Quartz (with hot reload)
   open site/index.html  # Simple HTML
 
 ### Deploy Options

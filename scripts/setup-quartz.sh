@@ -9,10 +9,11 @@
 # Usage (run from repo root):
 #   bash scripts/setup-quartz.sh
 #
-# After setup, preview with:
-#   cd site && npx quartz build --directory ../wiki --serve --port 4321
+# After setup, preview with hot reload:
+#   cd site && npx quartz build --directory ../wiki --serve --watch --port 4321
 #
 # Open http://localhost:4321
+# Edits in Obsidian (wiki/) are auto-detected, rebuilt, and reflected in the browser.
 #
 # To reset:  rm -rf site/ && bash scripts/setup-quartz.sh
 #
@@ -77,7 +78,7 @@ if [ -d "$SITE_DIR" ]; then
   print_warn "site/ directory already exists at $SITE_DIR"
   echo ""
   echo "  Options:"
-  echo "    • Preview existing install: cd site && npx quartz build --directory ../wiki --serve --port 4321"
+  echo "    • Preview existing install: cd site && npx quartz build --directory ../wiki --serve --watch --port 4321"
   echo "    • Reinstall: rm -rf site/ && bash scripts/setup-quartz.sh"
   echo ""
   exit 1
@@ -138,11 +139,13 @@ echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo -e "${BOLD}Next steps:${NC}"
 echo ""
-echo -e "  1. ${BLUE}Preview:${NC}"
-echo -e "     ${CYAN}cd site && npx quartz build --directory ../wiki --serve --port 4321${NC}"
+echo -e "  1. ${BLUE}Preview with hot reload:${NC}"
+echo -e "     ${CYAN}cd site && npx quartz build --directory ../wiki --serve --watch --port 4321${NC}"
+echo -e "     ${YELLOW}--watch${NC} enables auto-rebuild on wiki/ file changes (incremental, ~200ms)"
 echo ""
 echo -e "  2. ${BLUE}Open in browser:${NC}"
 echo -e "     ${CYAN}http://localhost:4321${NC}"
+echo -e "     Edits in Obsidian are reflected automatically — no manual refresh needed."
 echo ""
 echo -e "  3. ${BLUE}Customize (optional):${NC}"
 echo -e "     Edit ${CYAN}site/quartz.config.ts${NC}"

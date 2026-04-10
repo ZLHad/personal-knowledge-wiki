@@ -146,8 +146,9 @@ Claude：
 **一键安装 Quartz：**
 ```bash
 bash scripts/setup-quartz.sh
-cd site && npx quartz build --directory ../wiki --serve --port 4321
+cd site && npx quartz build --directory ../wiki --serve --watch --port 4321
 # 打开 http://localhost:4321
+# 在 Obsidian 里的编辑会自动重建和刷新——无需任何手动操作。
 ```
 
 也支持 MkDocs Material（更正式的文档站风格）和纯 HTML，通过 `wiki-export` skill：
@@ -324,14 +325,24 @@ bash scripts/setup-quartz.sh
 
 **零修改 wiki**——Quartz 通过 `--directory ../wiki` 标志直接读取，不复制、不符号链接。
 
-### 本地预览
+### 本地预览（带热重载）
 
 ```bash
 cd site
-npx quartz build --directory ../wiki --serve --port 4321
+npx quartz build --directory ../wiki --serve --watch --port 4321
 ```
 
-浏览器访问 **http://localhost:4321**。Quartz 带热重载——你在 Obsidian 里的改动会自动刷新浏览器。
+浏览器访问 **http://localhost:4321**。
+
+**标志说明：**
+- `--directory ../wiki` — 从 wiki/ 目录读取内容（不复制）
+- `--serve` — 启动本地开发服务器
+- `--watch` — **监视文件变化自动重建**（增量，通常每次改动 ~200ms）
+- `--port 4321` — 自定义端口（默认 8080）
+
+**更新工作流**：在 Obsidian 里编辑任意 `wiki/*.md` 文件 → 保存 → Quartz 检测到变化 → 增量重建（~200ms）→ 浏览器自动刷新。零手动操作。
+
+写作期间让这个服务器一直跑着；完成后按 `Ctrl+C` 停止。
 
 ### 验收清单
 
@@ -370,13 +381,37 @@ configuration: {
 }
 ```
 
+### 更新工作流——三种场景
+
+Quartz 装好后，Obsidian 里的改动如何反映到渲染后的站点？
+
+| 场景 | 适用时机 | 编辑后发生什么 |
+|------|---------|--------------|
+| **A. 热重载**（推荐日常写作） | 正在编辑 wiki | 服务器带 `--watch` 运行 → 检测到文件变化 → 增量重建 (~200ms) → 浏览器自动刷新。**零手动操作。** |
+| **B. 临时预览** | 偶尔看一眼 | 临时启动：`cd site && npx quartz build --directory ../wiki --serve --port 4321`。全量重建 (~5s) 但一次性。看完 `Ctrl+C` 关掉。 |
+| **C. 已部署站点** | 公网/分享给外人 | 提交 wiki 改动 → `git push` → CI 自动构建并部署（1-2 分钟）。详见下文。 |
+
+**场景 A 是默认的日常工作流**——让 dev server 在一个终端标签常驻，你在 Obsidian 里每次保存都会在 1 秒内反映到浏览器。
+
 ### 部署
 
-| 平台 | 方式 |
-|------|------|
-| **GitHub Pages** | `cd site && npx quartz sync`（推送到 `gh-pages` 分支） |
-| **Cloudflare Pages** | 连接 git 仓库，构建命令：`cd site && npx quartz build --directory ../wiki`，输出目录：`site/public` |
-| **Netlify / Vercel** | 同 Cloudflare——连接仓库，设置构建命令和输出目录 |
+| 平台 | 方式 | 适合场景 |
+|------|------|---------|
+| **GitHub Pages** | `cd site && npx quartz sync`（推送到 `gh-pages` 分支） | Public 仓库，配置最简 |
+| **Cloudflare Pages** | 连接 git 仓库，构建命令：`cd site && npx quartz build --directory ../wiki`，输出目录：`site/public` | Private 仓库，CDN 速度最快，免费额度慷慨 |
+| **Netlify / Vercel** | 同 Cloudflare——连接仓库，设置构建命令和输出目录 | Private 仓库，CI/CD 生态好 |
+
+**已部署版本的更新工作流**（Cloudflare/Netlify/Vercel）：
+```
+1. 在 Obsidian 编辑 wiki/xxx.md → 保存
+2. git add wiki/ && git commit -m "update: xxx" && git push
+   ↓（自动）
+3. 平台检测到 push → 运行构建命令 → 部署
+   ↓（1-2 分钟）
+4. 公网 URL 反映改动
+```
+
+**无需手动 `quartz build`**——平台自动处理。如果你装了 `obsidian-git` 插件，甚至可以在 Obsidian 里直接 commit + push。
 
 对 private 仓库，**Cloudflare Pages** 和 **Vercel** 支持 private git 源但部署为 public。
 

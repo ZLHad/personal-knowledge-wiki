@@ -147,8 +147,9 @@ Export `wiki/` as a browsable static site. **Quartz is the recommended default**
 **One-command Quartz install:**
 ```bash
 bash scripts/setup-quartz.sh
-cd site && npx quartz build --directory ../wiki --serve --port 4321
+cd site && npx quartz build --directory ../wiki --serve --watch --port 4321
 # Open http://localhost:4321
+# Edits in Obsidian auto-rebuild & refresh — no manual steps needed.
 ```
 
 Also supports MkDocs Material (formal doc-site aesthetic) and simple standalone HTML via the `wiki-export` skill:
@@ -325,14 +326,24 @@ The script:
 
 **Zero wiki modification** — Quartz reads your wiki via the `--directory ../wiki` flag, no copying or symlinking.
 
-### Preview locally
+### Preview locally (with hot reload)
 
 ```bash
 cd site
-npx quartz build --directory ../wiki --serve --port 4321
+npx quartz build --directory ../wiki --serve --watch --port 4321
 ```
 
-Open **http://localhost:4321** in your browser. Quartz has hot reload, so edits in Obsidian refresh automatically.
+Open **http://localhost:4321** in your browser.
+
+**Flag breakdown:**
+- `--directory ../wiki` — read content from your wiki/ directory (no copying)
+- `--serve` — run the local dev server
+- `--watch` — **auto-rebuild on file changes** (incremental, typically ~200ms per change)
+- `--port 4321` — custom port (default is 8080)
+
+**Update workflow**: Edit any `wiki/*.md` file in Obsidian → save → Quartz detects the change, does an incremental rebuild (~200ms), and your browser auto-refreshes. Zero manual steps.
+
+Leave this server running while you work in Obsidian. Stop it with `Ctrl+C` when done.
 
 ### Verification checklist
 
@@ -371,13 +382,37 @@ configuration: {
 }
 ```
 
+### Update workflow — three scenarios
+
+Once Quartz is installed, how do changes in Obsidian reach the rendered site?
+
+| Scenario | When to use | What happens on edit |
+|----------|-------------|----------------------|
+| **A. Hot reload** (recommended for writing) | You're actively editing wiki | Server running with `--watch` → file change detected → incremental rebuild (~200ms) → browser auto-refreshes. **Zero manual steps.** |
+| **B. On-demand preview** | Occasional check | Start server temporarily: `cd site && npx quartz build --directory ../wiki --serve --port 4321`. Rebuild is full (~5s) but one-shot. `Ctrl+C` when done. |
+| **C. Deployed site** | Public/shared | Commit wiki changes → `git push` → CI rebuilds and deploys (1-2 min). Details below. |
+
+**Scenario A** is the default daily workflow — leave the dev server running in a terminal tab while you work in Obsidian, and every save is reflected in the browser within a second.
+
 ### Deployment
 
-| Platform | How |
-|----------|-----|
-| **GitHub Pages** | `cd site && npx quartz sync` (pushes to `gh-pages` branch) |
-| **Cloudflare Pages** | Connect git repo, set build command: `cd site && npx quartz build --directory ../wiki`, output: `site/public` |
-| **Netlify / Vercel** | Same as Cloudflare — connect repo, set build cmd and output dir |
+| Platform | How | Best for |
+|----------|-----|----------|
+| **GitHub Pages** | `cd site && npx quartz sync` (pushes to `gh-pages` branch) | Public repos, simplest setup |
+| **Cloudflare Pages** | Connect git repo, set build command: `cd site && npx quartz build --directory ../wiki`, output: `site/public` | Private repos, fastest CDN, generous free tier |
+| **Netlify / Vercel** | Same as Cloudflare — connect repo, set build cmd and output dir | Private repos, good CI/CD ecosystem |
+
+**Deployed update workflow** (Cloudflare/Netlify/Vercel):
+```
+1. Edit wiki/xxx.md in Obsidian → save
+2. git add wiki/ && git commit -m "update: xxx" && git push
+   ↓ (automatic)
+3. Platform detects push → runs build command → deploys
+   ↓ (1-2 minutes)
+4. Public URL reflects the change
+```
+
+No manual `quartz build` needed — the platform handles it. If you have `obsidian-git` plugin, you can even commit-and-push from within Obsidian.
 
 For private repos, **Cloudflare Pages** and **Vercel** support private git sources with public deployment.
 
