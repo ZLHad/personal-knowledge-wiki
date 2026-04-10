@@ -1,6 +1,6 @@
 ---
 name: wiki-export
-description: "Export your personal Wiki as a static website. Supports MkDocs (Material theme), Quartz, or plain HTML output. Generates navigation, search index, and styled pages from your wiki/ directory. Trigger phrases: \"export wiki\", \"publish wiki\", \"build wiki site\", \"generate static site\", \"wiki to website\", \"deploy wiki\"."
+description: "Export your personal Wiki as a static website. Recommended path: one-command Quartz install via `bash scripts/setup-quartz.sh` (Obsidian-native, graph view, KaTeX). Also supports MkDocs (Material theme) and plain HTML output. Generates navigation, search index, and styled pages from your wiki/ directory. Trigger phrases: \"export wiki\", \"publish wiki\", \"build wiki site\", \"generate static site\", \"wiki to website\", \"deploy wiki\", \"setup quartz\", \"quartz site\"."
 ---
 
 # Wiki Export
@@ -21,14 +21,54 @@ Export the `wiki/` layer of your personal knowledge base as a browsable static w
 | **Quartz** | Obsidian-native look with graph view, backlinks | `npx quartz` (Node.js) |
 | **Simple HTML** | Zero dependencies, offline browsing | None (built-in converter) |
 
-## Workflow
+## ⚡ Quick Start: Quartz (Recommended Default)
+
+For most users, **Quartz is the fastest path to a polished web version** because:
+
+- It's **purpose-built for Obsidian vaults** — reads `[[wikilinks]]` natively, no conversion needed
+- Handles **LaTeX formulas** via KaTeX out of the box
+- Renders **Chinese filenames and content** correctly
+- Provides **graph view, backlinks, hover previews, search, dark mode** by default
+- Can be deployed to GitHub Pages / Cloudflare / Netlify / Vercel with zero extra config
+
+### One-command install
+
+```bash
+bash scripts/setup-quartz.sh
+```
+
+This script:
+1. Clones Quartz into `site/` (gitignored)
+2. Installs npm dependencies
+3. Pre-configures `quartz.config.ts` (title, locale, ignorePatterns excluding dashboard.md)
+4. Does NOT touch or copy your `wiki/` content — it points directly at it via `--directory` flag
+
+### Preview locally
+
+```bash
+cd site && npx quartz build --directory ../wiki --serve --port 4321
+```
+
+Then open **http://localhost:4321** — you'll see your wiki with graph view, search, and popover previews.
+
+### Reset
+
+```bash
+rm -rf site/ && bash scripts/setup-quartz.sh
+```
+
+**Only skip the Quick Start path** if the user explicitly asks for MkDocs, Simple HTML, or a different SSG.
+
+---
+
+## Workflow (for non-Quartz exports or custom flows)
 
 ### Step 1: Choose Export Format
 
 Ask the user:
 > "Which export format would you like?
-> 1. **MkDocs Material** — best for sharing, has search + navigation + dark mode
-> 2. **Quartz** — looks like Obsidian, has interactive graph view
+> 1. **Quartz** (recommended) — looks like Obsidian, has graph view + KaTeX + backlinks. **Use `bash scripts/setup-quartz.sh` for one-command install.**
+> 2. **MkDocs Material** — best for formal doc-site aesthetic with search + navigation + dark mode
 > 3. **Simple HTML** — zero dependencies, just open in browser
 >
 > Or specify a custom static site generator."

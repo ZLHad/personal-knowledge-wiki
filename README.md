@@ -142,17 +142,26 @@ Claude:
 
 #### 5. Export — Publish as a static website
 
-Export `wiki/` as a browsable static site. Supports MkDocs Material (search + dark mode), Quartz (Obsidian-like graph view), or simple standalone HTML.
+Export `wiki/` as a browsable static site. **Quartz is the recommended default** — it's purpose-built for Obsidian vaults and requires zero content conversion (native `[[wikilinks]]`, KaTeX, graph view, backlinks).
 
+**One-command Quartz install:**
+```bash
+bash scripts/setup-quartz.sh
+cd site && npx quartz build --directory ../wiki --serve --port 4321
+# Open http://localhost:4321
+```
+
+Also supports MkDocs Material (formal doc-site aesthetic) and simple standalone HTML via the `wiki-export` skill:
 ```
 You: export wiki as website
 Claude:
-  1. Asks format preference (MkDocs / Quartz / Simple HTML)
-  2. Converts [[wikilinks]] → standard links
-  3. Generates navigation, search index
-  4. Outputs to site/ directory
-  5. Shows deploy options (GitHub Pages, Netlify, Vercel)
+  1. Asks format preference (Quartz / MkDocs / Simple HTML)
+  2. For Quartz: runs scripts/setup-quartz.sh (recommended)
+  3. For others: converts [[wikilinks]] → standard links, generates nav/search
+  4. Shows deploy options (GitHub Pages, Netlify, Vercel, Cloudflare Pages)
 ```
+
+See [Quartz Static Site Setup](#quartz-static-site-setup) below for details.
 
 ### Four Page Types
 
@@ -273,6 +282,126 @@ If you prefer to set things up yourself:
 3. Copy `templates/index.md` → `wiki/index.md`, `templates/log.md` → `log.md`
 4. Copy `skills/` contents to `~/.claude/skills/`, replace `{{WIKI_PATH}}` in each SKILL.md
 5. (Optional) Configure Obsidian vault manually
+
+---
+
+## Quartz Static Site Setup
+
+Once your wiki has content, you probably want a **prettier web version** — for personal reading on mobile, sharing with collaborators, or publishing as a public knowledge base.
+
+**[Quartz](https://quartz.jzhao.xyz/)** is the recommended static site generator because it's purpose-built for Obsidian vaults:
+
+| Feature | Quartz |
+|---------|--------|
+| `[[wikilinks]]` rendering | ✅ Native (zero conversion) |
+| LaTeX formulas (`$...$`, `$$...$$`) | ✅ KaTeX built-in |
+| Chinese content / filenames | ✅ UTF-8 support |
+| Graph view | ✅ Interactive |
+| Backlinks | ✅ Auto-generated |
+| Hover popover previews | ✅ Built-in |
+| Full-text search | ✅ FlexSearch |
+| Dark mode | ✅ One-click toggle |
+| Responsive (mobile) | ✅ Out of the box |
+
+### Prerequisites
+
+- **Node.js v20+** ([install](https://nodejs.org))
+- Your `wiki/` directory must have content (run `scripts/setup.sh` first if empty)
+
+### One-command install
+
+```bash
+bash scripts/setup-quartz.sh
+```
+
+The script:
+1. Clones Quartz into `site/` (automatically gitignored)
+2. Removes Quartz's demo content and own git history
+3. Installs npm dependencies (~5-10 seconds)
+4. Pre-configures `quartz.config.ts` with sensible defaults:
+   - `pageTitle`: "My Knowledge Wiki" (edit to taste)
+   - `baseUrl`: `localhost:4321` (for local preview)
+   - `ignorePatterns`: excludes `dashboard.md` (Dataview blocks can't render in Quartz)
+
+**Zero wiki modification** — Quartz reads your wiki via the `--directory ../wiki` flag, no copying or symlinking.
+
+### Preview locally
+
+```bash
+cd site
+npx quartz build --directory ../wiki --serve --port 4321
+```
+
+Open **http://localhost:4321** in your browser. Quartz has hot reload, so edits in Obsidian refresh automatically.
+
+### Verification checklist
+
+On first load, verify:
+
+- [ ] **Homepage** renders `wiki/index.md` as a catalog
+- [ ] **LaTeX formulas** render correctly (not raw `$$`)
+- [ ] **Wikilinks** like `[[MARL]]` are clickable and navigate correctly
+- [ ] **Graph view** shows node cluster (bottom-right or sidebar)
+- [ ] **Hover previews** appear on wikilinks
+- [ ] **Search** (Cmd/Ctrl+K) returns results
+- [ ] **Dark mode toggle** works
+- [ ] **dashboard.md** is NOT in sidebar (correctly excluded)
+- [ ] **raw/** is NOT in sidebar (never exposed)
+
+### Customization
+
+Edit `site/quartz.config.ts`:
+
+```typescript
+configuration: {
+  pageTitle: "Your Knowledge Base",     // site title
+  locale: "en-US",                      // "zh-CN" for Chinese
+  baseUrl: "yourname.github.io/wiki",   // deployment URL
+  ignorePatterns: [                     // files to exclude
+    "private", "templates", ".obsidian", "dashboard.md"
+  ],
+  theme: {
+    typography: {
+      header: "Schibsted Grotesk",      // font pairings
+      body: "Source Sans Pro",
+      code: "IBM Plex Mono",
+    },
+    colors: { /* light/dark palette */ },
+  },
+}
+```
+
+### Deployment
+
+| Platform | How |
+|----------|-----|
+| **GitHub Pages** | `cd site && npx quartz sync` (pushes to `gh-pages` branch) |
+| **Cloudflare Pages** | Connect git repo, set build command: `cd site && npx quartz build --directory ../wiki`, output: `site/public` |
+| **Netlify / Vercel** | Same as Cloudflare — connect repo, set build cmd and output dir |
+
+For private repos, **Cloudflare Pages** and **Vercel** support private git sources with public deployment.
+
+### Reset
+
+If you want to start fresh:
+
+```bash
+rm -rf site/
+bash scripts/setup-quartz.sh
+```
+
+Leaves zero trace (since `site/` is gitignored). Your `wiki/` is never touched.
+
+### Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| `Found 0 input files from content` | Don't use symlinks — use `--directory ../wiki` flag instead |
+| `Invalid URL` in 404 plugin | Set `baseUrl` to a non-empty string (e.g., `"localhost:4321"`) |
+| `LaTeX-incompatible: Unicode text ... in math mode` | Warning only — check if you have Chinese characters inside `$...$`; escape them or use `\text{...}` |
+| Port 4321 conflict | Use `--port 3000` or any other free port |
+| `npm install` fails on native deps | Try `npm install --ignore-scripts` |
+| Chinese filenames show as URL-encoded | Normal — Quartz preserves UTF-8 but URLs are percent-encoded. Renders correctly in sidebar and search. |
 
 ---
 

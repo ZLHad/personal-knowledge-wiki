@@ -141,17 +141,26 @@ Claude：
 
 #### 5. Export（导出）——发布为静态网站
 
-将 `wiki/` 导出为可浏览的静态网站。支持 MkDocs Material（搜索+暗色模式）、Quartz（类 Obsidian 图谱视图）、或纯 HTML。
+将 `wiki/` 导出为可浏览的静态网站。**Quartz 是推荐默认方案**——它为 Obsidian vault 量身打造，无需内容转换（原生支持 `[[wikilinks]]`、KaTeX 公式、图谱视图、反向链接）。
 
+**一键安装 Quartz：**
+```bash
+bash scripts/setup-quartz.sh
+cd site && npx quartz build --directory ../wiki --serve --port 4321
+# 打开 http://localhost:4321
+```
+
+也支持 MkDocs Material（更正式的文档站风格）和纯 HTML，通过 `wiki-export` skill：
 ```
 你：导出知识库为网站
 Claude：
-  1. 询问格式偏好（MkDocs / Quartz / 纯 HTML）
-  2. 将 [[wikilinks]] → 标准链接
-  3. 生成导航和搜索索引
-  4. 输出到 site/ 目录
-  5. 展示部署选项（GitHub Pages、Netlify、Vercel）
+  1. 询问格式偏好（Quartz / MkDocs / 纯 HTML）
+  2. Quartz 路径：运行 scripts/setup-quartz.sh（推荐）
+  3. 其他路径：将 [[wikilinks]] → 标准链接，生成导航/搜索
+  4. 展示部署选项（GitHub Pages、Cloudflare Pages、Netlify、Vercel）
 ```
+
+详见下方 [Quartz 静态网站搭建](#quartz-静态网站搭建) 章节。
 
 ### 四类 Wiki 页面
 
@@ -272,6 +281,126 @@ claude
 3. 复制 `templates/index.md` → `wiki/index.md`，`templates/log.md` → `log.md`
 4. 复制 `skills/` 内容到 `~/.claude/skills/`，替换每个 SKILL.md 中的 `{{WIKI_PATH}}`
 5. （可选）手动配置 Obsidian vault
+
+---
+
+## Quartz 静态网站搭建
+
+当你的 wiki 有了内容后，你可能想要一个**更漂亮的网页版本**——用于手机端阅读、分享给合作者、或对外发布作为公开的知识库。
+
+**[Quartz](https://quartz.jzhao.xyz/)** 是推荐的静态站点生成器，因为它是专门为 Obsidian vault 设计的：
+
+| 功能 | Quartz |
+|------|--------|
+| `[[wikilinks]]` 渲染 | ✅ 原生支持（零转换） |
+| LaTeX 公式（`$...$`、`$$...$$`） | ✅ 内置 KaTeX |
+| 中文内容 / 文件名 | ✅ 支持 UTF-8 |
+| 图谱视图 | ✅ 交互式 |
+| 反向链接 | ✅ 自动生成 |
+| 悬停弹出预览 | ✅ 内置 |
+| 全文搜索 | ✅ FlexSearch |
+| 暗色模式 | ✅ 一键切换 |
+| 响应式（手机友好） | ✅ 开箱即用 |
+
+### 前置条件
+
+- **Node.js v20+**（[下载](https://nodejs.org)）
+- `wiki/` 目录必须有内容（如果是空的，先运行 `scripts/setup.sh`）
+
+### 一键安装
+
+```bash
+bash scripts/setup-quartz.sh
+```
+
+脚本会：
+1. 将 Quartz 克隆到 `site/` 目录（自动 gitignore）
+2. 移除 Quartz 自带的演示内容和它自己的 git 历史
+3. 安装 npm 依赖（约 5-10 秒）
+4. 预配置 `quartz.config.ts` 的合理默认值：
+   - `pageTitle`：`"My Knowledge Wiki"`（自己改）
+   - `baseUrl`：`localhost:4321`（本地预览）
+   - `ignorePatterns`：排除 `dashboard.md`（含 Dataview 代码块，Quartz 无法渲染）
+
+**零修改 wiki**——Quartz 通过 `--directory ../wiki` 标志直接读取，不复制、不符号链接。
+
+### 本地预览
+
+```bash
+cd site
+npx quartz build --directory ../wiki --serve --port 4321
+```
+
+浏览器访问 **http://localhost:4321**。Quartz 带热重载——你在 Obsidian 里的改动会自动刷新浏览器。
+
+### 验收清单
+
+首次打开后验证：
+
+- [ ] **首页**正确渲染 `wiki/index.md` 作为目录
+- [ ] **LaTeX 公式**正确渲染（不是原始的 `$$`）
+- [ ] **Wikilinks** 如 `[[MARL]]` 可点击跳转
+- [ ] **图谱视图**显示节点集群（右下角或侧边栏）
+- [ ] **鼠标悬停**在 wikilink 上弹出预览
+- [ ] **搜索**（Cmd/Ctrl+K）返回结果
+- [ ] **暗色模式**切换按钮可用
+- [ ] **dashboard.md** 未出现在侧边栏（已正确排除）
+- [ ] **raw/** 未出现在侧边栏（从不暴露）
+
+### 定制
+
+编辑 `site/quartz.config.ts`：
+
+```typescript
+configuration: {
+  pageTitle: "你的知识库",               // 站点标题
+  locale: "zh-CN",                      // 中文内容用 zh-CN
+  baseUrl: "yourname.github.io/wiki",   // 部署 URL
+  ignorePatterns: [                     // 排除的文件
+    "private", "templates", ".obsidian", "dashboard.md"
+  ],
+  theme: {
+    typography: {
+      header: "Schibsted Grotesk",      // 字体搭配
+      body: "Source Sans Pro",
+      code: "IBM Plex Mono",
+    },
+    colors: { /* 明暗色调色板 */ },
+  },
+}
+```
+
+### 部署
+
+| 平台 | 方式 |
+|------|------|
+| **GitHub Pages** | `cd site && npx quartz sync`（推送到 `gh-pages` 分支） |
+| **Cloudflare Pages** | 连接 git 仓库，构建命令：`cd site && npx quartz build --directory ../wiki`，输出目录：`site/public` |
+| **Netlify / Vercel** | 同 Cloudflare——连接仓库，设置构建命令和输出目录 |
+
+对 private 仓库，**Cloudflare Pages** 和 **Vercel** 支持 private git 源但部署为 public。
+
+### 重置
+
+如果想从头来过：
+
+```bash
+rm -rf site/
+bash scripts/setup-quartz.sh
+```
+
+零痕迹（因为 `site/` 已 gitignore）。你的 `wiki/` 永远不会被动到。
+
+### 常见问题
+
+| 问题 | 解决方案 |
+|------|---------|
+| `Found 0 input files from content` | 不要用符号链接——用 `--directory ../wiki` 标志代替 |
+| 404 插件抛 `Invalid URL` | 把 `baseUrl` 设为非空字符串（如 `"localhost:4321"`） |
+| `LaTeX-incompatible: Unicode text ... in math mode` | 仅警告——检查 `$...$` 里是否混入中文字符，用 `\text{...}` 包起来或转义 |
+| 端口 4321 被占用 | 用 `--port 3000` 或其他可用端口 |
+| `npm install` 在原生依赖上失败 | 尝试 `npm install --ignore-scripts` |
+| 中文文件名显示为 URL 编码 | 正常现象——Quartz 保留 UTF-8 但 URL 会 percent-encoded。侧边栏和搜索能正确显示。 |
 
 ---
 

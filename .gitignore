@@ -2,3 +2,6 @@
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
 .obsidian/cache
+
+# Quartz static site builder (managed by scripts/setup-quartz.sh)
+site/
