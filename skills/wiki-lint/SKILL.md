@@ -15,9 +15,37 @@ Run a comprehensive health check on the wiki, output a structured report.
 
 ## Prerequisites
 
-1. Read `CLAUDE.md` for conventions
+1. Read `CLAUDE.md` for conventions, **paying special attention to the "Lint Exempt List" section** if present (e.g. `wiki/dashboard.md` is a common Obsidian-only homepage that should be exempt from Rule 2/3)
 2. Read `wiki/index.md` for full catalog
 3. Read `log.md` for recent operations
+
+## Wikilink Parsing — Critical Constraint
+
+**Before running any regex match for `[[...]]`, you MUST pre-process the text as follows** (otherwise you will get many false positives):
+
+1. **Strip fenced code blocks**: remove everything wrapped in ```` ``` ... ``` ```` (with or without a language tag)
+2. **Strip inline code spans**: remove everything wrapped in `` `...` ``
+3. **Only then run the regex**: `re.findall(r"\[\[([^\]|#]+)(?:\|[^\]]*)?\]\]", cleaned_text)`
+
+**Why**: wiki pages frequently contain code-span snippets like `` `[[double-bracket-link]]` `` that explain Wikilink syntax itself. These are **not real links** and must be ignored. A field report (2026-04-11) confirmed a case in `wiki/entities/Obsidian.md` where an earlier script falsely flagged such a snippet as a dead link.
+
+**Reference Python implementation**:
+```python
+import re
+
+def strip_code(text):
+    # fenced code blocks
+    text = re.sub(r"```[\s\S]*?```", "", text)
+    # inline code spans (cannot cross newlines per CommonMark)
+    text = re.sub(r"`[^`\n]*`", "", text)
+    return text
+
+def extract_wikilinks(text):
+    cleaned = strip_code(text)
+    return re.findall(r"\[\[([^\]|#]+)(?:\|[^\]]*)?\]\]", cleaned)
+```
+
+**Rule 2 inbound-link counting must also use cleaned text**, or fake links inside code spans will inflate the reference count.
 
 ## Workflow
 
@@ -27,19 +55,22 @@ Execute these 8 checks sequentially, recording pass/fail and specific issues:
 
 #### Rule 1: Dead Link Detection
 - Scan all .md files under wiki/
-- Extract all `[[wikilink]]`
-- Check each link points to a real existing .md file
-- **Fail condition**: Link points to non-existent file
+- For each file, first apply `strip_code()` (see "Wikilink Parsing — Critical Constraint" above), then extract `[[wikilink]]`
+- Check each link points to a real existing .md file (match by stem; support both `folder/page` and plain `page` forms)
+- `[[raw/...]]` form links additionally verify the corresponding raw file exists
+- **Fail condition**: Link points to non-existent file (excluding fake links inside code spans)
 
 #### Rule 2: Orphan Page Detection
-- Count inbound links for each wiki page (times linked by other pages)
+- Count inbound links for each wiki page (times linked by other pages, **using cleaned text**)
 - Links from `wiki/index.md` count
-- **Fail condition**: Page has 0 inbound links (index.md itself exempt)
+- **Exempt**: files listed in `CLAUDE.md`'s "Lint Exempt List" section (typically `wiki/index.md` and any Obsidian-only homepage like `wiki/dashboard.md`)
+- **Fail condition**: Page has 0 inbound links (exempt files excluded)
 
 #### Rule 3: Frontmatter Completeness
-- Every .md file under wiki/ (except index.md) must have YAML frontmatter
+- Every .md file under wiki/ must have YAML frontmatter
 - Required fields: `type`, `domain`, `created`, `updated`, `sources`, `tags`, `aliases`
-- **Fail condition**: Missing required field
+- **Exempt**: files listed in `CLAUDE.md`'s "Lint Exempt List" section (typically `wiki/index.md` and any Obsidian-only homepage like `wiki/dashboard.md`)
+- **Fail condition**: Missing required field (exempt files excluded)
 
 #### Rule 4: Tag Consistency
 - Extract all tags from frontmatter across all pages
@@ -49,6 +80,7 @@ Execute these 8 checks sequentially, recording pass/fail and specific issues:
 #### Rule 5: Source Traceability
 - Every entity/concept page's `sources:` field must have at least 1 entry
 - Each source path must point to an existing file in `raw/`
+- **Scope / implicit exemption**: this rule only scans `wiki/entities/` and `wiki/concepts/` subdirectories. Pages under `wiki/topics/`, `wiki/syntheses/`, as well as `wiki/index.md` and any Obsidian-only homepage, are naturally out of scope.
 - **Fail condition**: Empty sources, or source points to non-existent file
 
 #### Rule 6: Index Sync

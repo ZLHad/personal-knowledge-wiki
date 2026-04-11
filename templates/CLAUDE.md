@@ -269,6 +269,16 @@ Triggered when the user asks a question about their knowledge base.
 
 Triggered by the user or periodically as maintenance.
 
+**Lint Exempt List** (files intentionally excluded from all hard rules):
+- `wiki/index.md` — the catalog itself; exempt from Rule 2 (orphan) and Rule 3 (frontmatter), but still scanned by Rule 1 (dead links).
+- *(optional)* `wiki/dashboard.md` — if you keep an Obsidian Dataview homepage at this path, add it here so lint doesn't nag. Such pages should also be in your static-site generator's `ignorePatterns` (e.g. Quartz).
+
+Add your own exempt files below as needed. Keep the list short — every exemption is a place where lint can no longer catch regressions.
+
+**Lint script hard requirements** (any script implementing these rules must):
+- **Strip code spans before matching wikilinks**: before regex-matching `[[...]]`, remove `` `...` `` inline code spans. Otherwise syntax-explanation snippets like `` `[[double-bracket-link]]` `` in documentation pages will be falsely flagged as dead links.
+- **Strip fenced code blocks too**: same reason — `[[...]]` inside ``` ``` ``` blocks must be ignored.
+
 **Hard Rules (must all pass):**
 1. **Dead links**: Every `[[wikilink]]` must point to an existing file.
 2. **Orphan pages**: Every wiki page must have at least 1 inbound `[[wikilink]]` from another page (index.md counts).
