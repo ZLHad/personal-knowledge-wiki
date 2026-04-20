@@ -190,6 +190,50 @@ Seed which to `wiki/ideas/`?
 - Ingest is about a sub-domain where the user already has committed ideas
 - User explicitly said "don't suggest ideas for this ingest"
 
+---
+
+## Idea state-transition workflow (idea-flow)
+
+⚠️ User's review / promotion / shelving of ideas is an **ongoing process**, not a one-shot action. This section governs the standard flow when user requests "promote idea X".
+
+### State machine (as defined in CLAUDE.md)
+
+```
+seed → sketched → prototyping → drafting → submitted → landed
+              ↓         ↓            ↓
+            shelved   shelved    shelved
+```
+
+### Per-transition criteria + actions
+
+| Transition | User instruction examples | Criteria | Automated actions |
+|---|---|---|---|
+| **seed → sketched** | "promote X to sketched" | Motivation developed / Novelty claim concrete / at least 1 paragraph of technical route | Change frontmatter `status: sketched`; append to `状态日志`: `YYYY-MM-DD: promoted to sketched by user` |
+| **sketched → prototyping** | "start prototyping X" | Specific experiment / simulator / codebase target exists | Change status; guide user to write `next_action` |
+| **prototyping → drafting** | "X has preliminary results, start writing" | Initial experimental results exist | Optionally create `raw/科研/论文资料/<paper_id>-draft.tex` as writing anchor |
+| **drafting → submitted** | "X has been submitted" | LaTeX generated + submission confirmation | Append submission date; suggest creating corresponding `wiki/papers/<paper_id>.md` entry with `origin: self-authored-manuscript` |
+| **submitted → landed** | "X was accepted" | Acceptance notification | Update status + venue + mark "my own paper" on wiki/papers/ page |
+| **any → shelved** | "shelve X" | — | Change status: shelved; append `状态日志`: `YYYY-MM-DD: shelved — <reason>` (reason required) |
+
+### Batch review flow ("review all my ideas")
+
+1. Read `wiki/ideas/*.md`, group by status
+2. For each `seed` idea, run this **review checklist**:
+   - Still interested? (if no → shelve candidate)
+   - Motivation / Novelty claim still valid? (literature / user work changed?)
+   - Clear next action? (if no → remain seed)
+   - Should confidence be adjusted?
+3. Report batch suggestions to user: promote X / shelve Y / refine Z; wait for user's final decision
+4. Execute user-confirmed transitions in one git commit
+
+### Do NOT auto-transition (needs user judgment) for:
+
+- Jumping two stages from seed to prototyping (usually too aggressive; suggest sketched first)
+- Shelving without a reason (reason required)
+- Repeated seed ↔ sketched ping-pong within one week (remind user this idea is unstable)
+
+---
+
 ## Workflow
 
 ### Step 1: Content Analysis

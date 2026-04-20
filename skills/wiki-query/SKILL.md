@@ -110,29 +110,59 @@ If two wiki pages contradict each other:
 - Note the contradiction explicitly
 - Suggest running `lint` to flag for resolution
 
-### Step 4: Optional Archival
+### Step 4: Archival (auto-tiered)
 
-After answering, evaluate whether to suggest archival:
+#### Archival-value auto-score (don't miss valuable answers)
 
-**Auto-suggest archival when:**
-- Answer synthesizes 3+ wiki pages
-- Answer includes a comparison table or decision matrix
-- Answer is an overview or survey of a topic
-- User is likely to reference the answer again
+After the answer, **internally score** the answer and route to different paths:
 
-**Don't suggest archival when:**
-- Answer is a simple factual lookup (1-2 sentences)
-- Answer is "wiki has no content on this"
-- Answer is trivial or time-sensitive
+| Score | Criteria | Action |
+|---|---|---|
+| **auto-archive (4/4)** | Answer synthesizes ≥ 5 wiki pages + contains comparison table / decision matrix / generational diagram + user explicit "reuse intent" (e.g. "I'll cite this later") | **Archive automatically** (no prompt), show archival result |
+| **suggest-strong (3/4)** | ≥ 3 wiki pages + at least 1 structured output (table / list / taxonomy) | Strongly suggest archival with one-line prompt |
+| **suggest-weak (2/4)** | 2 wiki pages + prose answer | Light prompt "archive this?" |
+| **skip (1/4)** | 1-page factual lookup / "wiki has no content" / trivial / time-sensitive | Don't archive |
 
-Prompt:
-> "This synthesis draws from N wiki pages. Would you like to archive it as a synthesis page for future reference?"
+**auto-archive workflow** (no user prompt):
+1. Generate slug: `YYYY-MM-DD-<topic-slug>` (3-5 kebab-case words extracted from question)
+2. Create `wiki/syntheses/<slug>.md` with full frontmatter + answer
+3. Append answer with: `> 📌 Archived as [[syntheses/<slug>]].`
+4. Update index.md Syntheses table + log.md
 
-If user agrees:
-1. Create `wiki/syntheses/YYYY-MM-DD-<slug>.md` with full frontmatter
-2. Add to `wiki/index.md` Syntheses table
-3. Append to `log.md`
-4. Add `[[wikilinks]]` from relevant wiki pages back to this synthesis
+**suggest-strong / suggest-weak workflow** (ask user):
+> "This answer synthesizes N wiki pages with X comparison tables. Archive as a synthesis page for future `[[wikilink]]` reference? [y/n/change slug]"
+
+If user agrees, same archival actions.
+
+#### Synthesis skeleton (auto-filled)
+
+```markdown
+---
+type: synthesis
+domain: 科研   # inferred from the territory involved
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+sources:
+  - <all referenced wiki pages>
+tags: [<extracted from question keywords>]
+aliases: []
+---
+
+# <title distilled from question>
+
+## Question
+<original question, user's verbatim words>
+
+## Analysis
+<answer body, preserving all [[wikilinks]]>
+
+## Related
+<wikilinks list of all referenced pages>
+```
+
+#### Back-link after archival
+
+Automatically append to each **referenced wiki page's `## Related`** section: `[[syntheses/<slug>]] — <synthesis title>`. This way browsing a concept page in the future shows "this concept was discussed in these syntheses".
 
 ## Query Types
 

@@ -199,15 +199,65 @@ If user only wants a fast check, run hard rules only (Phase 1), skip soft analys
 
 Trigger: user says "quick lint" or "hard rules only".
 
-## Auto-Fix
+## Auto-Fix Mode
 
-For simple issues, offer auto-fix options:
-- Dead links → offer to create missing page or remove link
-- Index out of sync → auto-update index.md
-- Missing frontmatter fields → auto-fill defaults
-- Stale pages → list pages needing review
+**Trigger**: user says "lint + fix", "auto-fix", "lint and repair", or after a regular lint produces issues and user says "go ahead and fix them".
 
-Ask user confirmation before each fix.
+### Workflow
+
+1. **Scan**: run all 8 hard rules, classify issues into **auto-fixable** (safe to fix) vs **human-required** (needs user judgment)
+2. **Present manifest**: list each issue, proposed fix, confidence level (LOW/MEDIUM/HIGH need-to-confirm)
+3. **Ask user in one shot**: user replies "fix all" / "fix 1,2,5" / "skip" / "change 3 to X"
+4. **Execute + verify**: apply Edit operations per user instruction; re-run lint to confirm 0 issues
+5. **Report**: before/after diff summary + new lint report
+
+### Auto-fixable issue categories
+
+| Issue type | Auto-fix strategy | Confirm level |
+|---|---|---|
+| **Rule 6 index unsynced**: page missing from index.md | Auto-append to matching table in index.md using page frontmatter description | LOW (almost always correct) |
+| **Rule 6 index unsynced**: index row points to non-existent file | Remove the row | MEDIUM (could be a typo — show) |
+| **Rule 3 frontmatter missing**: common fields like `aliases: []`, `tags: []` | Add with empty-list default | LOW |
+| **Rule 3 frontmatter missing**: missing `updated:` | Fill with today's date | LOW |
+| **Rule 4 tag violation**: tag is close to an approved list item (e.g. `工具` vs `工具与工作流`) | Propose the closest approved replacement | MEDIUM (show before/after) |
+| **Rule 1 dead link**: stem is very close to an existing page (spelling diff) | Propose nearest-neighbor stem | MEDIUM |
+
+### Issues that MUST require human judgment (never auto)
+
+| Issue type | Why not auto-fixable |
+|---|---|
+| **Rule 1 dead link** to a truly-nonexistent page | user must decide: create new page vs delete reference vs link to another existing page |
+| **Rule 2 orphan page** | user must decide: add to which other pages' Related / add to index / delete |
+| **Rule 4 tag violation**: completely new word | user must decide: add to approved list vs switch term |
+| **Rule 5 sources empty** | user must identify which source belongs |
+| **Rule 8 stale** (>90 days) | content freshness requires user judgment |
+
+### Display format (before user confirms)
+
+```markdown
+## Lint found N auto-fixable + M need-human
+
+### Auto-fixable (N)
+| # | File | Issue | Proposed fix | Confirm |
+|---|---|---|---|---|
+| 1 | wiki/entities/X.md | missing from index.md | append to ## Entities | LOW |
+| 2 | wiki/papers/y.md | tag "论文" not in approved list | replace with `论文笔记` | MEDIUM |
+| ... |
+
+### Need-human (M)
+| # | File | Issue | Options |
+|---|---|---|---|
+| 1 | wiki/papers/z.md references [[UnknownConcept]] | dead link | (a) create [[UnknownConcept]] / (b) delete reference / (c) point to [[RelatedConcept]] |
+| ...
+
+Please instruct:
+- "fix all" — apply all LOW fixes (MEDIUM still shown for before/after approval)
+- "1,2,5" — selective
+- "change 0 to xxx" — custom instruction
+- "skip" — produce lint report only
+```
+
+**Every MEDIUM-confirm fix shows before/after before executing**. LOW-confirm fixes batch-apply without per-item confirmation (but are all listed in the manifest above).
 
 ## Git Commit
 
