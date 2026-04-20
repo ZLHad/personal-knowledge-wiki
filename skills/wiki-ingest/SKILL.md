@@ -101,7 +101,94 @@ Automatically apply the corresponding checklist based on the source file's domai
 
 Mandatory skeleton: strictly follow CLAUDE.md's "Territory Pages" 5 sections (problem boundary / methods landscape / key papers lineage / open gaps / my angle).
 
-**ideas/** pages are **not auto-generated from raw files** at all. They come from user dictation or from ingest-time identification of "research ideas/hypotheses" in conversation content. See CLAUDE.md's "Idea Pages" for skeleton. New ideas default to `status: seed`; the user drives status transitions manually.
+**ideas/** pages are **not auto-generated from raw files** at all, but ingest flow does include an explicit **post-ingest idea-suggestion hook** (see below). New ideas default to `status: seed`, `confidence: low`; the user drives status transitions and confidence manually.
+
+---
+
+## Academic-framing criteria for ideas (STRICT)
+
+⚠️ Field report 2026-04-11: first batch of ideas was written in "engineering project plan" voice (build/measure/prototype), user rejected as not academic. Apply ALL 4 criteria below when:
+(a) the post-ingest idea-suggestion hook fires,
+(b) the user explicitly asks to generate idea seeds,
+(c) Phase 3 cold-start batch generation.
+
+### Criterion 1: Motivation starts with a scientific question / scenario-problem pair, NOT "gap to fill"
+
+❌ Engineering voice:
+> "Existing SAGIN methods ignore resource failure correlation [gap], so we propose a method to handle it."
+
+✅ Academic voice:
+> "Is the iid assumption in SAGIN resource failure modeling still valid when LEO overhead times become correlated? What's the systemic regret of violating it?" (pose an answerable **scientific question** first)
+
+### Criterion 2: Emphasis varies by `idea_type` — NOT a universal 3-step template
+
+| idea_type | Main emphasis (80%) | Secondary | Can omit |
+|---|---|---|---|
+| **theory** | Theoretical formulation + proof sketch + novelty | Experiment validating bound | Engineering steps |
+| **method** | **Theoretical innovation core** (why it works) + essential difference from existing methods | Target scenario + expected effect | Engineering details |
+| **system** | Architectural idea + key design tradeoffs + formalized sub-question | Experiment validating key claim | Benchmark numbers |
+| **scenario** | **Structural features** of the new scenario + **structural reasons** existing methods fail | Sketch of new method | Concrete algorithm implementation |
+| **position** | Problem **structure + critique logic** + constructive directions | Often no experiment needed | Implementation |
+| **paradigm** | **First-principle argumentation** for the perspective shift | 1-2 concrete protocol instances | Full prototype |
+| **infrastructure** | Structural characterization of the field's **methodological gap** | Evaluability criterion | Engineering steps |
+
+### Criterion 3: Demote `## 最小可行实验` (minimum viable experiment)
+
+- NOT every idea needs heavy ink on this section. position / paradigm ideas may omit or give one sentence.
+- Experiment, if present, must be framed as **theory validation** ("verify the predicted bound"), NOT **benchmark reporting** ("measure X%").
+- If an idea's core contribution is "I built a X", re-check whether it's misclassified as infrastructure / needs reshape.
+
+### Criterion 4: `## 科学贡献 (Intellectual contribution)` is MANDATORY
+
+Every idea page MUST have this section. Format: 2-4 sentences using **academic verbs**:
+
+✅ characterize / formulate / prove / bound / reveal / establish / unify / instantiate / challenge
+❌ build / measure / implement / deliver / develop / test
+
+Content answers **"what we learn" (insight)** NOT **"what we build" (artifact)**.
+
+---
+
+## Post-ingest idea-suggestion hook (NEW)
+
+⚠️ Field report 2026-04-11: the user wants skill to *proactively* suggest possible idea seeds after ingesting new papers / notes, rather than waiting for the user to dictate.
+
+### Trigger conditions
+
+- When the ingest writes a raw file into `wiki/papers/` (an external paper brief), **MANDATORY** trigger
+- When the ingest causes a concept or territory to first cross the "3 related papers" threshold, **MANDATORY** trigger
+- When the conversation explicitly discussed "could do XX" / "is XX researchable", **MANDATORY** trigger
+
+### Suggestion workflow
+
+1. **Scan** the new papers from this ingest + relevant territory's current Open Gaps
+2. Identify **possible idea candidates** (typically 0-2, don't flood)
+3. For each candidate, draft a **pitch + Motivation + Novelty claim** per criteria 1-4 (NOT a full idea page — just a **candidate pitch**)
+4. **Ask the user**:
+
+```markdown
+## Possible idea seeds (based on this ingest)
+
+1. **<candidate 1 slug>** (`idea_type: <type>`)
+   - Scientific question: <1 sentence>
+   - Novelty claim: <1-2 sentences>
+   - Links to: [[papers/<just-ingested X>]] + [[territories/Y]] gap G<N>
+
+2. **<candidate 2 slug>** ...
+
+Seed which to `wiki/ideas/`?
+- All (status: seed, confidence: low)
+- Selective: [1], [2]
+- Log only here, don't seed
+- None, ignore
+```
+
+5. After user decision, **generate the full idea page** per criteria 1-4 (only for selected candidates)
+
+### Cases where NOT to actively suggest
+- Ingest is primarily topics/ (writing guides) or entities/ (journals/tools)
+- Ingest is about a sub-domain where the user already has committed ideas
+- User explicitly said "don't suggest ideas for this ingest"
 
 ## Workflow
 
