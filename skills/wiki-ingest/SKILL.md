@@ -43,6 +43,24 @@ Automatically apply the corresponding checklist based on the source file's domai
 - [ ] Innovation points and baseline comparisons
 - [ ] Experiment results (key data tables, comparison metrics)
 - [ ] Method comparisons (if multi-method comparison tables exist)
+- [ ] **Create `wiki/papers/<paper_id>.md` brief** (see "Paper Routing Rules" below)
+- [ ] Identify the paper's gap → append to the matching `wiki/territories/<domain>.md` Open Gaps section
+- [ ] Identify the paper's research field → fill the `territory:` field in papers/ frontmatter with `[[territories/xxx]]`
+
+**Paper Routing Rules** (decide whether a file under `raw/科研/论文资料/` becomes a `wiki/papers/` page):
+
+| raw file characteristic | Target | Rationale |
+|---|---|---|
+| Filename matches `-<author><year>` pattern (e.g. `-zhou2025`) | `wiki/papers/<paper_id>.md` | External published paper |
+| Self-authored paper that is submitted or published | `wiki/papers/`, `origin: self-authored-manuscript` | Fully-written Paper |
+| Self-authored survey/manuscript **in draft** (not finalized) | **Do NOT go into papers/**; keep in raw/ as scaffolding source for `wiki/territories/` | Drafts are field-survey raw material |
+| Filename contains `-details` / `-params` / `-proof` / `-analysis` / `-literature` etc. (method details / parameters / proofs / analyses / reference lists) | Do NOT go into papers/; append to the matching concept page's `sources:` | Not a standalone Paper |
+| Filename has no author-year; first-person research notes | Do NOT go into papers/; place under concept or topic | Personal investigation notes |
+
+**Paper Generation Strategy (token-efficient)**:
+- **Thorough close-read (≥ 300 lines)**: `bash cp raw/*.md wiki/papers/<slug>.md`, then Edit only the top (frontmatter + H1 + TL;DR) and bottom (Related + optional `## 对我的启发 / ## Personal Takeaways` stub). Body is byte-preserved.
+- **Thin quick-read (< 200 lines)**: Fill the skeleton per CLAUDE.md's "Paper Pages" format, with `status: skimmed`, leaving empty sections empty.
+- **Reflection handling**: grep the raw file for headings like `启发|思考|心得|讨论|评价|反思|改进意见|Insight|Takeaway|Reflection|对我的|Personal|My view`. If matched, set `has_reflection: true` and skip the stub. If not matched, append `## 对我的启发 / ## Personal Takeaways <!-- TODO -->` stub. Do NOT let sub-agents fabricate reflections — they lack personal context.
 
 ### Writing / Style Guides
 - [ ] Writing rules/patterns (reusable rules)
@@ -57,6 +75,17 @@ Automatically apply the corresponding checklist based on the source file's domai
 
 ### Other Domains
 - Organize key information by topic, no fixed checklist
+
+### Territory / Idea Pages (non-typical ingest triggers)
+
+**territories/** pages are **not usually auto-generated from a single raw file**. They are created after a meaningful number of papers + concepts have accumulated, triggered by an explicit user request like "build a territory page for XX" or "organize the X research field". Scaffolding sources:
+- 1-2 self-authored survey drafts (e.g. `raw/科研/论文资料/*-survey.md`)
+- N papers/ pages from the same field (already generated)
+- Clusters of related concepts/ pages
+
+Mandatory skeleton: strictly follow CLAUDE.md's "Territory Pages" 5 sections (problem boundary / methods landscape / key papers lineage / open gaps / my angle).
+
+**ideas/** pages are **not auto-generated from raw files** at all. They come from user dictation or from ingest-time identification of "research ideas/hypotheses" in conversation content. See CLAUDE.md's "Idea Pages" for skeleton. New ideas default to `status: seed`; the user drives status transitions manually.
 
 ## Workflow
 

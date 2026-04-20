@@ -276,8 +276,15 @@ Triggered by the user or periodically as maintenance.
 Add your own exempt files below as needed. Keep the list short — every exemption is a place where lint can no longer catch regressions.
 
 **Lint script hard requirements** (any script implementing these rules must):
-- **Strip code spans before matching wikilinks**: before regex-matching `[[...]]`, remove `` `...` `` inline code spans. Otherwise syntax-explanation snippets like `` `[[double-bracket-link]]` `` in documentation pages will be falsely flagged as dead links.
-- **Strip fenced code blocks too**: same reason — `[[...]]` inside ``` ``` ``` blocks must be ignored.
+
+Before regex-matching `[[...]]`, scripts MUST strip the following **4 syntactic regions** (otherwise expect many false positives):
+
+1. **Fenced code blocks** (multi-line ``` ``` ```) — code examples contain `[[...]]` literals (nested Python lists, etc.)
+2. **Display math `$$...$$`** (multi-line LaTeX) — paper notes may contain `$$ Q = [[-24.6626, -20.4354]] $$` which is a Python array in math, not a wikilink. (2026-04-11 field case.)
+3. **Inline code spans `` `...` ``** (single-line, per CommonMark) — pages explaining Wikilink syntax use snippets like `` `[[double-bracket-link]]` `` that are docs, not links.
+4. **Inline math `$...$`** (single-line LaTeX) — short expressions like `$[a,b]$` should be stripped defensively.
+
+See `skills/wiki-lint/SKILL.md` for reference Python implementation (`strip_noise()`).
 
 **Hard Rules (must all pass):**
 1. **Dead links**: Every `[[wikilink]]` must point to an existing file.

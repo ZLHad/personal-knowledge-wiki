@@ -21,31 +21,47 @@ Run a comprehensive health check on the wiki, output a structured report.
 
 ## Wikilink Parsing — Critical Constraint
 
-**Before running any regex match for `[[...]]`, you MUST pre-process the text as follows** (otherwise you will get many false positives):
+**Before running any regex match for `[[...]]`, you MUST pre-process the text by stripping FOUR syntactic regions** (otherwise you will get many false positives):
 
-1. **Strip fenced code blocks**: remove everything wrapped in ```` ``` ... ``` ```` (with or without a language tag)
-2. **Strip inline code spans**: remove everything wrapped in `` `...` ``
-3. **Only then run the regex**: `re.findall(r"\[\[([^\]|#]+)(?:\|[^\]]*)?\]\]", cleaned_text)`
+1. **Fenced code blocks**: remove everything wrapped in ```` ``` ... ``` ```` (with or without a language tag, multi-line)
+2. **Display math blocks**: remove everything wrapped in `$$ ... $$` (multi-line)
+3. **Inline code spans**: remove everything wrapped in `` `...` `` (single-line per CommonMark)
+4. **Inline math**: remove everything wrapped in `$ ... $` (single-line)
+5. **Only then run the regex**: `re.findall(r"\[\[([^\]|#]+)(?:\|[^\]]*)?\]\]", cleaned_text)`
 
-**Why**: wiki pages frequently contain code-span snippets like `` `[[double-bracket-link]]` `` that explain Wikilink syntax itself. These are **not real links** and must be ignored. A field report (2026-04-11) confirmed a case in `wiki/entities/Obsidian.md` where an earlier script falsely flagged such a snippet as a dead link.
+**Why each region matters**:
 
-**Reference Python implementation**:
+- **Inline code span** — pages explaining Wikilink syntax contain snippets like `` `[[double-bracket-link]]` ``. These are documentation examples, not real links. Field case (2026-04-11): `wiki/entities/Obsidian.md`.
+- **Display math `$$...$$`** — paper notes may include `$$ Q = [[-24.6626, -20.4354]] $$` showing a Python array / matrix in LaTeX. The `[[...]]` is math notation, not a link. Field case (2026-04-11): `wiki/papers/huang2024-ChatNet.md:1435`.
+- **Inline math `$...$`** — short expressions like `$[a,b]$` (rare but possible) should also be stripped defensively.
+- **Fenced code block** — code examples may contain any `[[x]]` (Python nested lists, Haskell lists, etc.).
+
+**Reference Python implementation** (recommended to reuse verbatim):
 ```python
 import re
 
-def strip_code(text):
-    # fenced code blocks
+def strip_noise(text):
+    """Strip all syntactic regions that could contain fake wikilinks."""
+    # 1. fenced code blocks (triple backticks, multi-line)
     text = re.sub(r"```[\s\S]*?```", "", text)
-    # inline code spans (cannot cross newlines per CommonMark)
+    # 2. display math blocks ($$...$$, multi-line)
+    text = re.sub(r"\$\$[\s\S]*?\$\$", "", text)
+    # 3. inline code spans (single backticks, single-line per CommonMark)
     text = re.sub(r"`[^`\n]*`", "", text)
+    # 4. inline math ($...$, single-line)
+    text = re.sub(r"\$[^\$\n]+\$", "", text)
     return text
 
 def extract_wikilinks(text):
-    cleaned = strip_code(text)
+    cleaned = strip_noise(text)
     return re.findall(r"\[\[([^\]|#]+)(?:\|[^\]]*)?\]\]", cleaned)
 ```
 
-**Rule 2 inbound-link counting must also use cleaned text**, or fake links inside code spans will inflate the reference count.
+**Both Rule 1 (dead links) and Rule 2 (inbound-link counting) must use `strip_noise()`-cleaned text**, or fake links will simultaneously produce false dead-link reports and inflated inbound counts.
+
+**Version history**:
+- v1 (before 2026-04-11): stripped only code spans
+- v2 (2026-04-11 Phase 1): added display math + inline math stripping. Function renamed from `strip_code` to `strip_noise` to reflect broader coverage.
 
 ## Workflow
 
@@ -55,7 +71,7 @@ Execute these 8 checks sequentially, recording pass/fail and specific issues:
 
 #### Rule 1: Dead Link Detection
 - Scan all .md files under wiki/
-- For each file, first apply `strip_code()` (see "Wikilink Parsing — Critical Constraint" above), then extract `[[wikilink]]`
+- For each file, first apply `strip_noise()` (see "Wikilink Parsing — Critical Constraint" above — strips fenced code + inline code span + `$$...$$` display math + `$...$` inline math), then extract `[[wikilink]]`
 - Check each link points to a real existing .md file (match by stem; support both `folder/page` and plain `page` forms)
 - `[[raw/...]]` form links additionally verify the corresponding raw file exists
 - **Fail condition**: Link points to non-existent file (excluding fake links inside code spans)
