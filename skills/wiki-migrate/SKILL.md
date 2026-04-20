@@ -70,11 +70,21 @@ For each file, quickly determine:
 1. **Domain**: Which `raw/<domain>/` directory does it belong to?
 2. **Sub-category**: Which sub-category under the domain?
 3. **Content type**: What kind of knowledge does it contain?
-4. **Wiki page candidates**: What entities/concepts/topics can be extracted?
+4. **Wiki page candidates**: What page type(s) can be produced?
+
+**7 wiki page types — routing rules**:
+- **`entities/`** — specific named things: journals, conferences, people, tools (e.g. `IEEE-TCOM`, `Zotero`)
+- **`concepts/`** — methods, theories, cross-paper syntheses (e.g. `MARL`, `Conditional-Diffusion`)
+- **`topics/`** — guides, norms, best practices (writing specs, workflow guides)
+- **`papers/`** — **per-paper briefs**: promote only if raw filename matches `-<author><year>` pattern, OR content is a self-authored submitted manuscript. Skip self-authored drafts / method-details / proof-fragments / reference-lists (those enrich concept pages' `sources:`)
+- **`territories/`** — **research-field maps**: usually NOT auto-generated from a single raw file; created when a field has accumulated enough papers+concepts
+- **`ideas/`** — **user's research ideas**: NOT auto-generated from raw; comes only from user dictation
+- **`syntheses/`** — filed query answers / user's written plans (grants, revisions)
 
 **Classification strategy:**
 - Read file title, frontmatter (if any), and first 20 lines
 - Match keywords against existing domains in CLAUDE.md
+- Check filename for patterns: `-<author><year>` → paper candidate; `-details` / `-params` / `-proof` / `-analysis` / `-literature` → concept supplement (don't create paper page)
 - Group similar files for batch processing
 
 Present classification plan to user for approval:
@@ -83,9 +93,10 @@ Present classification plan to user for approval:
 
 | # | File | → Domain | → Type | Wiki Pages |
 |---|------|----------|--------|------------|
-| 1 | react-hooks.md | programming/notes | entity+concept | React, Hooks |
-| 2 | api-design.md | programming/tools | topic | API-Design-Guide |
-| 3 | meeting-2026-01.md | work/meetings | entity | Project-X |
+| 1 | zhou2025-HDL-MDRS.md | research/papers | paper | papers/zhou2025-HDL-MDRS |
+| 2 | CD-TD3-algorithm-details.md | research/papers | concept supplement | enrich Conditional-Diffusion sources |
+| 3 | abstract-writing-spec.md | research/writing | topic | topics/abstract-writing-spec |
+| 4 | react-hooks.md | programming/notes | entity+concept | React, Hooks |
 | ... | | | | |
 
 Approve? (y/n, or specify changes)

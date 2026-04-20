@@ -138,12 +138,18 @@ theme:
 
 nav:
   - Home: index.md
-  - Entities:
-    - (auto-generated from wiki/entities/)
+  - Territories:
+    - (auto-generated from wiki/territories/)   # research field maps
+  - Papers:
+    - (auto-generated from wiki/papers/)        # per-paper briefs
   - Concepts:
-    - (auto-generated from wiki/concepts/)
+    - (auto-generated from wiki/concepts/)      # methods / theories / terms
+  - Entities:
+    - (auto-generated from wiki/entities/)      # journals / tools / people
   - Topics:
-    - (auto-generated from wiki/topics/)
+    - (auto-generated from wiki/topics/)        # writing norms / guides
+  - Ideas:
+    - (auto-generated from wiki/ideas/)         # user's incubating research ideas
   - Syntheses:
     - (auto-generated from wiki/syntheses/)
 
@@ -259,7 +265,33 @@ After export:
 ## Key Principles
 
 1. **Wiki content only**: Never export `raw/` or `meta/` — only compiled wiki pages
-2. **Privacy first**: Always check for private/sensitive pages before export
+2. **Privacy first**: Always check for private/sensitive pages before export. Default excludes: Obsidian-only Dataview homepage (e.g. `wiki/dashboard.md`); `wiki/ideas/` pages with `status: seed` or `status: shelved` (personal in-progress ideas, not for public)
 3. **Links must work**: Every `[[wikilink]]` must become a working HTML link
-4. **Preserve structure**: Maintain entities/concepts/topics/syntheses organization
+4. **Preserve structure**: Maintain the **7 page types** organization:
+   - `wiki/territories/` — research field maps
+   - `wiki/papers/` — per-paper briefs
+   - `wiki/concepts/` — methods / theories
+   - `wiki/entities/` — journals / tools / people
+   - `wiki/topics/` — writing norms
+   - `wiki/ideas/` — incubating ideas (selective export, only `status ≥ sketched`)
+   - `wiki/syntheses/` — archived query answers
 5. **Offline-friendly**: Generated site should work without internet connection
+
+## Quartz-specific guidance (field-tested 2026-04-11)
+
+If using Quartz (`npx quartz build --serve`), the following gotchas were learned the hard way:
+
+1. **Quartz does NOT follow symlinks**: `ln -s ../wiki content` is silently ignored by globby, resulting in "Found 0 input files". Solution: use `rsync -a --delete --exclude='.obsidian' --exclude='dashboard.md' ../wiki/ content/` to mirror content, re-rsync after each wiki change.
+
+2. **`.gitignore` swallows everything**: Quartz defaults `gitignore: true`. If `site/` is in the parent repo's `.gitignore`, Quartz treats every `site/content/*.md` as ignored, again "Found 0 input files". Solution: edit `site/quartz/util/glob.ts` to set `gitignore: false`.
+
+3. **LaTeX unicode warnings**: `$...Chinese...$` triggers KaTeX `unicodeTextInMathMode` warning (non-blocking). Clean by wrapping Chinese in `\text{...}` inside math environments.
+
+4. **Critical config options**: set `pageTitle` to a user-friendly name; `baseUrl: "localhost:4321"`; `ignorePatterns` includes the dashboard page; `defaultDateType: "modified"`.
+
+5. **Recommended workflow**:
+   ```bash
+   cd site
+   rsync -a --delete --exclude='.obsidian' --exclude='dashboard.md' ../wiki/ content/
+   npx quartz build --serve --port 4321
+   ```

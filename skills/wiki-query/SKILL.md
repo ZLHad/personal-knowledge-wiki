@@ -20,6 +20,27 @@ Before querying, read:
 2. `wiki/index.md` — full catalog of all wiki pages
 3. `log.md` — recent operations (for context)
 
+## Wiki architecture (7 page types, by query priority)
+
+Know which page type to search FIRST based on question type. This is the key to answer quality.
+
+| Page type | Answers | Trigger examples |
+|---|---|---|
+| **`wiki/territories/`** | Research-field maps: current state / gaps / user's angle | "What's happening in SAGIN?", "Open problems in GAI for wireless?", "World Model 6G gaps?" |
+| **`wiki/papers/`** | A specific paper / author / method's implementation in that paper | "What did Zhou 2025 do?", "HDL-MDRS innovations?", "Which papers used diffusion for MEC?" |
+| **`wiki/concepts/`** | Standardized definitions / cross-paper syntheses of a method/theory | "What is Conditional Diffusion?", "MARL vs MDP?", "Optimization-Embedded-DRL definition" |
+| **`wiki/entities/`** | Named entities (journals / tools / people) factual info | "IEEE-TCOM requirements", "algorithm2e usage", "Zotero setup" |
+| **`wiki/topics/`** | Reusable rules / patterns / writing norms | "How to write abstract?", "IEEE colon restriction?", "Symbol consistency rule" |
+| **`wiki/ideas/`** | User's own research ideas being incubated | "What ideas am I working on?", "Which ideas are in drafting status?", "Shelved ideas" |
+| **`wiki/syntheses/`** | Archived prior query answers | "Did we discuss X before?" |
+
+**Typical routing**:
+- Field-level question ("how is X going?") → start in `territories/`, then follow `[[wikilink]]` to papers/concepts
+- Specific-paper question → go directly to `papers/`
+- Method-principle question → start in `concepts/`, supplement with specific cases from `papers/`
+- "My own work" question → prioritize `ideas/` + `syntheses/`
+- Writing/format question → `topics/`
+
 ## Workflow
 
 ### Step 1: Understand the Question
