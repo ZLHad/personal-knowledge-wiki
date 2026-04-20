@@ -57,6 +57,22 @@ Automatically apply the corresponding checklist based on the source file's domai
 | Filename contains `-details` / `-params` / `-proof` / `-analysis` / `-literature` etc. (method details / parameters / proofs / analyses / reference lists) | Do NOT go into papers/; append to the matching concept page's `sources:` | Not a standalone Paper |
 | Filename has no author-year; first-person research notes | Do NOT go into papers/; place under concept or topic | Personal investigation notes |
 
+**Handling raw files with pre-existing frontmatter** (learned in Phase 1):
+- Some raw notes (especially those produced by conversation-knowledge-extractor or similar tools) already have a YAML frontmatter block at the head with **non-standard fields** like `extraction_date`, `conversation_type`, `source_type`, `main_topics`, `importance_level`, `source_url`, etc.
+- When Editing a Paper page, **you MUST detect and remove the raw's old frontmatter** before writing the new spec-compliant one.
+- Valuable fields (e.g. `source_url` for Zotero links, `source_author` for author list, `source_title` for the original paper title) should **migrate to the body** as a subtitle block below the H1:
+  ```markdown
+  # <Paper Title>
+
+  **Authors**: <...>
+  **Original title**: <...>
+  **Zotero**: `zotero://...`
+
+  ## TL;DR
+  ...
+  ```
+- Never let old and new frontmatter fields coexist in the same YAML block — lint's completeness check passes but field pollution remains.
+
 **Paper Generation Strategy (token-efficient)**:
 - **Thorough close-read (≥ 300 lines)**: `bash cp raw/*.md wiki/papers/<slug>.md`, then Edit only the top (frontmatter + H1 + TL;DR) and bottom (Related + optional `## 对我的启发 / ## Personal Takeaways` stub). Body is byte-preserved.
 - **Thin quick-read (< 200 lines)**: Fill the skeleton per CLAUDE.md's "Paper Pages" format, with `status: skimmed`, leaving empty sections empty.
